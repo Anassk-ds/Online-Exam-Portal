@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // It is used to create a page which will contail all the files and show the code or run the files by using it
 import ReactDOM from 'react-dom/client';
 import IndexPortal from './index.jsx'; 
 import AdminPanel from './admin.jsx'; 
