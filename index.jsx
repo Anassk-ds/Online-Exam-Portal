@@ -1,6 +1,4 @@
 import React, { useState, useRef } from 'react';
-// Import your animation asset from the same directory folder
-import walkingMan from './man-walking.gif'; 
 
 const IndexPortal = ({ navigateTo }) => {
   // Student States
@@ -66,10 +64,10 @@ const IndexPortal = ({ navigateTo }) => {
         }
       `}</style>
 
-      {/* Animated Office Man Layer */}
+      {/* Animated Office Man Layer using a standard HTTPS vector link */}
       <div style={styles.animationWrapper}>
         <img 
-          src={walkingMan} 
+          src="https://giphy.com" 
           alt="Animated man walking with office bag" 
           style={styles.animationImg} 
         />
@@ -215,14 +213,14 @@ const styles = {
   // Animation Container CSS Style Rules
   animationWrapper: {
     position: 'absolute',
-    bottom: '20px', // Places him right at the lower section of your screen
+    bottom: '20px', 
     left: '0',
-    zIndex: 10, // Places him in front of the background, but behind the modal cards
-    pointerEvents: 'none', // Prevents the image from blocking clicks on buttons
-    animation: 'walkAcrossScreen 14s linear infinite', // Continually loops across the viewport
+    zIndex: 10, 
+    pointerEvents: 'none', 
+    animation: 'walkAcrossScreen 15s linear infinite', 
   },
   animationImg: {
-    width: '140px',
+    width: '130px',
     height: 'auto',
   },
 
@@ -233,3 +231,4 @@ const styles = {
   labelLight: { fontSize: '14px', fontWeight: '500', color: '#374151' },
   labelDark: { fontSize: '14px', fontWeight: '500', color: '#d1d5db' },
   lightInput: { padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' },
+  darkInput: { padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#ffffff', fontSize: '14px' },
