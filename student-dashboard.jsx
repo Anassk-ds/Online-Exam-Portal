@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-const StudentDashboard = ({ navigateTo }) => {
+const StudentDashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Home'); 
   const [examsList, setExamsList] = useState([]); 
   const [results, setResults] = useState([]);
@@ -37,13 +39,10 @@ const StudentDashboard = ({ navigateTo }) => {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigateTo('/');
+    navigate('/');
   };
 
-  // Routes via the query string format (?id=) that take-exam.jsx reads.
-  // Uses navigateTo (SPA pushState routing) instead of a hard
-  // window.location.href reload, so it stays consistent with how the
-  // rest of the app navigates and doesn't blow away in-memory state.
+  // Routes via a dynamic path param (/take-exam/:id) handled by react-router-dom.
   const handleLaunchExamProcedure = (examId) => {
     if (!examId) {
       alert("⚠️ Error: Exam mapping signature is corrupted or blank.");
@@ -56,13 +55,18 @@ const StudentDashboard = ({ navigateTo }) => {
         if (data.allowed === false) {
           alert(data.error || "🔒 Access Blocked: You have already submitted this exam sheet.");
         } else {
-          navigateTo(`/take-exam?id=${examId}`);
+          navigate(`/take-exam/${examId}`);
         }
       })
       .catch(() => {
         // Fallback bypass routing logic if the attempt-check call itself fails
-        navigateTo(`/take-exam?id=${examId}`);
+        navigate(`/take-exam/${examId}`);
       });
+  };
+
+  // Navigates to the read-only Exam Details page for a given exam.
+  const handleViewExamDetails = (examId) => {
+    navigate(`/exams/${examId}`);
   };
 
   if (loading) return <div style={{ padding: '40px', fontFamily: 'sans-serif', textAlign: 'center', color: '#475569' }}>🔄 Fetching Profile Metrics Panels...</div>;
@@ -127,7 +131,8 @@ const StudentDashboard = ({ navigateTo }) => {
                           <span>🛑 Closes: {end.toLocaleString()}</span>
                         </div>
                       </div>
-                      <div>
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                        <button onClick={() => handleViewExamDetails(exam._id)} style={styles.viewBtn}>View</button>
                         {isOpen ? (
                           <button onClick={() => handleLaunchExamProcedure(exam._id)} style={styles.startBtn}>Start Test</button>
                         ) : isUpcoming ? (
@@ -227,6 +232,7 @@ const styles = {
   list: { display: 'flex', flexDirection: 'column', gap: '12px' },
   itemCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' },
   startBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' },
+  viewBtn: { backgroundColor: '#fff', color: '#2563eb', border: '1px solid #2563eb', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' },
   statusBadge: { padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }
 };
 
