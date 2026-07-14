@@ -1,144 +1,269 @@
-:root {
-    --primary: #2563eb;
-    --primary-hover: #1d4ed8;
-    --success: #10b981;
-    --success-hover: #059669;
-    --accent: #4f46e5;
-    --accent-hover: #4338ca;
-    --danger: #ef4444;
-    --danger-hover: #dc2626;
-    --background: #f8fafc;
-    --surface: #ffffff;
-    --text: #1e293b;
-    --border: #e2e8f0;
-}
+import React, { useState, useRef } from 'react';
 
-/* Global reset */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
+const IndexPortal = ({ navigateTo }) => {
+  // Student States
+  const [studentEmail, setStudentEmail] = useState('');
+  const [studentPassword, setStudentPassword] = useState('');
+  const [isStudentRegister, setIsStudentRegister] = useState(false);
 
-html, body, #root {
-    height: 100%;
-}
+  // Admin States
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [masterAdminEmail, setMasterAdminEmail] = useState(''); // Strict Verification Requirement
+  const [isAdminRegister, setIsAdminRegister] = useState(false);
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--background);
-    color: var(--text);
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-}
+  // UI Status Alerts
+  const [error, setError] = useState('');
+  const scrollContainerRef = useRef(null);
 
-*:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-::-webkit-scrollbar-track {
-    background: transparent;
-}
-::-webkit-scrollbar-thumb {
-    background-color: #cbd5e1;
-    border-radius: 8px;
-}
-
-.container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    animation: fadeInUp 0.5s ease-out forwards;
-}
-
-/* Core Global CSS Keyframe Animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(15px);
+  // Smooth Scroll Controller
+  const scrollToPanel = (panelIndex) => {
+    setError('');
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({
+        left: panelIndex * scrollContainerRef.current.clientWidth,
+        behavior: 'smooth'
+      });
     }
-    to {
-        opacity: 1;
-        transform: translateY(0);
+  };
+
+  // Auth Handler
+  const handleAuth = (e, type, isRegister) => {
+    e.preventDefault();
+    setError('');
+
+    const email = type === 'admin' ? adminEmail : studentEmail;
+    const password = type === 'admin' ? adminPassword : studentPassword;
+
+    if (!email.trim() || !password.trim()) {
+      return setError('Please fill in all secure authentication inputs.');
     }
-}
 
-@keyframes slideInLeft {
-    from {
-        opacity: 0;
-        transform: translateX(-20px);
+    // Security check for admin registration
+    if (type === 'admin' && isRegister && !masterAdminEmail.trim()) {
+      return setError('Access Denied: Master Admin email verification signature required.');
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+
+    localStorage.setItem('userEmail', email);
+    localStorage.setItem('userRole', type);
+
+    if (type === 'admin') {
+      navigateTo('/admin');
+    } else {
+      navigateTo('/dashboard');
     }
-}
+  };
 
-@keyframes pulseBorder {
-    0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
-    70% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
-}
-
-/* Global Animated Classes mapped to JSX Components */
-.page-fade-in {
-    animation: fadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.sidebar-fade-in {
-    animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.card-animated {
-    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease, border-color 0.25s ease;
-}
-.card-animated:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.08);
-    border-color: #cbd5e1 !important;
-}
-
-.btn-animated {
-    transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
-    cursor: pointer;
-}
-.btn-animated:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.06);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-.btn-animated:active {
-    transform: translateY(1px);
-}
-
-.sidebar-item-animated {
-    transition: all 0.2s ease;
-}
-.sidebar-item-animated:hover {
-    transform: translateX(4px);
-    background-color: #1e293b !important;
-    color: #3b82f6 !important;
-}
-
-.input-animated {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.input-animated:focus {
-    border-color: var(--primary) !important;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-}
-
-.mcq-option-animated {
-    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.mcq-option-animated:hover {
-    background-color: #1e293b !important;
-    border-color: #4b5563 !important;
-    transform: translateX(3px);
+  return (
+    <div style={styles.viewWindow}>
+      {/* 100% Reliable Injected CSS Animations & Body Parts */}
+      <style>{`
+        @keyframes walkAcrossScreen {
+          0% { transform: translateX(-160px); }
+          100% { transform: translateX(100vw); }
         }
+        @keyframes legSwingLeft {
+          0%, 100% { transform: rotate(-25deg); }
+          50% { transform: rotate(25deg); }
+        }
+        @keyframes legSwingRight {
+          0%, 100% { transform: rotate(25deg); }
+          50% { transform: rotate(-25deg); }
+        }
+        @keyframes bodyBob {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-4px); }
+        }
+        .pure-css-walker {
+          position: fixed;
+          bottom: 40px;
+          left: 0;
+          width: 60px;
+          height: 110px;
+          z-index: 99999; /* Forced to the absolute front layer */
+          pointer-events: none;
+          animation: walkAcrossScreen 12s linear infinite;
+        }
+        .human-head {
+          width: 24px;
+          height: 24px;
+          background-color: #374151;
+          border-radius: 50%;
+          position: absolute;
+          top: 0;
+          left: 18px;
+          animation: bodyBob 0.6s infinite ease-in-out;
+        }
+        .human-body {
+          width: 20px;
+          height: 45px;
+          background-color: #1e3a8a; /* Formal blue suit jacket color */
+          border-radius: 4px;
+          position: absolute;
+          top: 26px;
+          left: 20px;
+          animation: bodyBob 0.6s infinite ease-in-out;
+        }
+        .office-bag {
+          width: 24px;
+          height: 18px;
+          background-color: #78350f; /* Brown leather briefcase color */
+          border-radius: 3px;
+          position: absolute;
+          top: 48px;
+          left: 32px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .office-bag-handle {
+          width: 10px;
+          height: 5px;
+          border: 2px solid #78350f;
+          border-bottom: none;
+          border-top-left-radius: 3px;
+          border-top-right-radius: 3px;
+          position: absolute;
+          top: -5px;
+          left: 7px;
+        }
+        .human-leg {
+          width: 6px;
+          height: 38px;
+          background-color: #111827;
+          position: absolute;
+          top: 68px;
+          border-radius: 3px;
+          transform-origin: top center;
+        }
+        .leg-left {
+          left: 21px;
+          animation: legSwingLeft 0.6s infinite linear;
+        }
+        .leg-right {
+          left: 29px;
+          animation: legSwingRight 0.6s infinite linear;
+        }
+      `}</style>
+
+      {/* Pure CSS Character Markup - Completely self-contained container */}
+      <div className="pure-css-walker">
+        <div className="human-head"></div>
+        <div className="human-body"></div>
+        <div className="office-bag">
+          <div className="office-bag-handle"></div>
+        </div>
+        <div className="human-leg leg-left"></div>
+        <div className="human-leg leg-right"></div>
+      </div>
+
+      <div style={styles.scrollWrapper} ref={scrollContainerRef}>
+        
+        {/* ================= PANEL 1: STUDENT PORTAL ================= */}
+        <div style={styles.panelPageLight}>
+          <div style={styles.card}>
+            <div style={styles.header}>
+              <h2 style={{ color: '#1f2937', margin: '0 0 5px 0' }}>Student Portal</h2>
+              <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Online Examination Terminal</p>
+            </div>
+
+            {error && !isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+
+            <form onSubmit={(e) => handleAuth(e, 'student', isStudentRegister)} style={styles.form}>
+              <div style={styles.inputGroup}>
+                <label style={styles.labelLight}>Student Email</label>
+                <input 
+                  type="email" 
+                  placeholder="student@university.com" 
+                  value={studentEmail}
+                  onChange={e => setStudentEmail(e.target.value)}
+                  required 
+                  style={styles.lightInput}
+                />
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.labelLight}>Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={studentPassword}
+                  onChange={e => setStudentPassword(e.target.value)}
+                  required 
+                  style={styles.lightInput}
+                />
+              </div>
+
+              <button type="submit" style={styles.studentBtn}>
+                {isStudentRegister ? 'Register Profile' : 'Secure Student Sign In'}
+              </button>
+
+              <div style={styles.toggleRow}>
+                <span onClick={() => setIsStudentRegister(!isStudentRegister)} style={styles.linkLight}>
+                  {isStudentRegister ? 'Already have an account? Sign In' : 'New student? Register Here'}
+                </span>
+              </div>
+            </form>
+
+            <div style={styles.switchTerminalBox}>
+              <p style={{ fontSize: '13px', color: '#4b5563', margin: '0 0 8px 0' }}>Need administrative tools?</p>
+              <button type="button" onClick={() => scrollToPanel(1)} style={styles.slideNextBtn}>
+                Slide to Admin Console ➔
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ================= PANEL 2: ADMIN SYSTEM CONSOLE ================= */}
+        <div style={styles.panelPageDark}>
+          <div style={{ ...styles.card, backgroundColor: '#1f2937', border: '1px solid #374151' }}>
+            <div style={styles.header}>
+              <h2 style={{ color: '#f9fafb', margin: '0 0 5px 0' }}>Admin Console</h2>
+              <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Secure Infrastructure Access</p>
+            </div>
+
+            {error && isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+
+            <form onSubmit={(e) => handleAuth(e, 'admin', isAdminRegister)} style={styles.form}>
+              <div style={styles.inputGroup}>
+                <label style={styles.labelDark}>Admin Email</label>
+                <input 
+                  type="email" 
+                  placeholder="admin@university.com" 
+                  value={adminEmail}
+                  onChange={e => setAdminEmail(e.target.value)}
+                  required 
+                  style={styles.darkInput}
+                />
+              </div>
+              <div style={styles.inputGroup}>
+                <label style={styles.labelDark}>Password</label>
+                <input 
+                  type="password" 
+                  placeholder="••••••••" 
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  required 
+                  style={styles.darkInput}
+                />
+              </div>
+
+              {/* Security Validation Field triggered on Admin Sign Up */}
+              {isAdminRegister && (
+                <div style={styles.inputGroup}>
+                  <label style={{ ...styles.labelDark, color: '#f87171' }}>Master Admin Email Verification</label>
+                  <input 
+                    type="email" 
+                    placeholder="existing.admin@university.com" 
+                    value={masterAdminEmail}
+                    onChange={e => setMasterAdminEmail(e.target.value)}
+                    required 
+                    style={{ ...styles.darkInput, border: '1px solid #ef4444' }}
+                  />
+                </div>
+              )}
+
+              <button type="submit" style={styles.adminBtn}>
+                {isAdminRegister ? 'Deploy New Admin' : 'Secure Admin Login'}
+              </button>
+
+              <div style={styles.toggleRow}>
+                <span onClick={() => setIsAdminRegister(!isAdminRegister)} style={styles.linkDark}>
+                  {isAdminRegister ? 'Cancel Registration' : 'New Admin? Register Profile'}
