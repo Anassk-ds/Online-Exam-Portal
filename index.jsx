@@ -1,22 +1,20 @@
 import React, { useState, useRef } from 'react';
+// Ensure your styles are imported if they aren't already:
+// import './style.css'; 
 
 const IndexPortal = ({ navigateTo }) => {
-  // Student States
   const [studentEmail, setStudentEmail] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [isStudentRegister, setIsStudentRegister] = useState(false);
 
-  // Admin States
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [masterAdminEmail, setMasterAdminEmail] = useState(''); // Strict Verification Requirement
+  const [masterAdminEmail, setMasterAdminEmail] = useState('');
   const [isAdminRegister, setIsAdminRegister] = useState(false);
 
-  // UI Status Alerts
   const [error, setError] = useState('');
   const scrollContainerRef = useRef(null);
 
-  // Smooth Scroll Controller
   const scrollToPanel = (panelIndex) => {
     setError('');
     if (scrollContainerRef.current) {
@@ -27,102 +25,89 @@ const IndexPortal = ({ navigateTo }) => {
     }
   };
 
-  // Auth Handler
   const handleAuth = (e, type, isRegister) => {
     e.preventDefault();
     setError('');
-
     const email = type === 'admin' ? adminEmail : studentEmail;
     const password = type === 'admin' ? adminPassword : studentPassword;
 
     if (!email.trim() || !password.trim()) {
       return setError('Please fill in all secure authentication inputs.');
     }
-
-    // Security check for admin registration
     if (type === 'admin' && isRegister && !masterAdminEmail.trim()) {
       return setError('Access Denied: Master Admin email verification signature required.');
     }
 
     localStorage.setItem('userEmail', email);
     localStorage.setItem('userRole', type);
-
-    if (type === 'admin') {
-      navigateTo('/admin');
-    } else {
-      navigateTo('/dashboard');
-    }
+    if (type === 'admin') { navigateTo('/admin'); } else { navigateTo('/dashboard'); }
   };
 
   return (
-    <div style={styles.viewWindow}>
-      {/* Dynamic CSS Keyframes injected safely for GitHub deployment */}
-      <style>{`
-        @keyframes walkAcrossScreen {
-          0% { transform: translateX(-160px); }
-          100% { transform: translateX(100vw); }
-        }
-      `}</style>
-
-      {/* Animated Office Man Layer using a standard HTTPS vector link */}
-      <div style={styles.animationWrapper}>
-        <img 
-          src="https://giphy.com" 
-          alt="Animated man walking with office bag" 
-          style={styles.animationImg} 
-        />
+    <div className="w-screen h-screen overflow-hidden relative font-sans">
+      
+      {/* Clean Character Elements linked to your style.css properties */}
+      <div className="pure-css-walker">
+        <div className="human-head"></div>
+        <div className="human-body"></div>
+        <div className="office-bag">
+          <div className="office-bag-handle"></div>
+        </div>
+        <div className="human-leg leg-left"></div>
+        <div className="human-leg leg-right"></div>
       </div>
 
-      <div style={styles.scrollWrapper} ref={scrollContainerRef}>
-        
+      <div className="flex w-full h-full overflow-x-hidden snap-x snap-mandatory" ref={scrollContainerRef}>
         {/* ================= PANEL 1: STUDENT PORTAL ================= */}
-        <div style={styles.panelPageLight}>
-          <div style={styles.card}>
-            <div style={styles.header}>
-              <h2 style={{ color: '#1f2937', margin: '0 0 5px 0' }}>Student Portal</h2>
-              <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Online Examination Terminal</p>
+        <div className="min-w-full h-full bg-gray-100 flex justify-center items-center snap-start">
+          <div className="bg-white p-[30px] rounded-xl shadow-md w-[380px]">
+            <div className="text-center mb-6">
+              <h2 className="text-gray-800 text-2xl font-bold mb-1">Student Portal</h2>
+              <p className="text-gray-500 text-xs tracking-wider uppercase">Online Examination Terminal</p>
             </div>
 
-            {error && !isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+            {error && !isAdminRegister && (
+              <div className="bg-red-100 text-red-600 p-2.5 rounded-md mb-4 text-sm text-center">⚠️ {error}</div>
+            )}
 
-            <form onSubmit={(e) => handleAuth(e, 'student', isStudentRegister)} style={styles.form}>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelLight}>Student Email</label>
+            <form onSubmit={(e) => handleAuth(e, 'student', isStudentRegister)} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700">Student Email</label>
                 <input 
                   type="email" 
                   placeholder="student@university.com" 
                   value={studentEmail}
                   onChange={e => setStudentEmail(e.target.value)}
                   required 
-                  style={styles.lightInput}
+                  className="p-2.5 rounded-md border border-gray-300 text-sm w-full outline-none focus:border-blue-500"
                 />
               </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelLight}>Password</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-700">Password</label>
                 <input 
                   type="password" 
                   placeholder="••••••••" 
                   value={studentPassword}
                   onChange={e => setStudentPassword(e.target.value)}
                   required 
-                  style={styles.lightInput}
+                  className="p-2.5 rounded-md border border-gray-300 text-sm w-full outline-none focus:border-blue-500"
                 />
               </div>
 
-              <button type="submit" style={styles.studentBtn}>
+              <button type="submit" className="p-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer transition-colors">
                 {isStudentRegister ? 'Register Profile' : 'Secure Student Sign In'}
               </button>
 
-              <div style={styles.toggleRow}>
-                <span onClick={() => setIsStudentRegister(!isStudentRegister)} style={styles.linkLight}>
+              <div className="text-center mt-1">
+                <span onClick={() => setIsStudentRegister(!isStudentRegister)} className="text-xs text-blue-600 cursor-pointer underline">
                   {isStudentRegister ? 'Already have an account? Sign In' : 'New student? Register Here'}
                 </span>
               </div>
             </form>
 
-            <div style={styles.switchTerminalBox}>
-              <p style={{ fontSize: '13px', color: '#4b5563', margin: '0 0 8px 0' }}>Need administrative tools?</p>
-              <button type="button" onClick={() => scrollToPanel(1)} style={styles.slideNextBtn}>
+            <div className="mt-6 pt-5 border-t border-gray-200 text-center">
+              <p className="text-xs text-gray-600 mb-2">Need administrative tools?</p>
+              <button type="button" onClick={() => scrollToPanel(1)} className="bg-transparent border-none text-gray-600 hover:text-gray-900 cursor-pointer font-semibold text-sm">
                 Slide to Admin Console ➔
               </button>
             </div>
@@ -130,105 +115,78 @@ const IndexPortal = ({ navigateTo }) => {
         </div>
 
         {/* ================= PANEL 2: ADMIN SYSTEM CONSOLE ================= */}
-        <div style={styles.panelPageDark}>
-          <div style={{ ...styles.card, backgroundColor: '#1f2937', border: '1px solid #374151' }}>
-            <div style={styles.header}>
-              <h2 style={{ color: '#f9fafb', margin: '0 0 5px 0' }}>Admin Console</h2>
-              <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Secure Infrastructure Access</p>
+        <div className="min-w-full h-full bg-gray-900 flex justify-center items-center snap-start">
+          <div className="bg-gray-800 border border-gray-700 p-[30px] rounded-xl shadow-md w-[380px]">
+            <div className="text-center mb-6">
+              <h2 className="text-gray-5
+font-bold text-2xl mb-1">Admin Console</h2>
+              <p className="text-gray-400 text-xs tracking-wider uppercase">Secure Infrastructure Access</p>
             </div>
 
-            {error && isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+            {error && isAdminRegister && (
+              <div className="bg-red-100 text-red-600 p-2.5 rounded-md mb-4 text-sm text-center">⚠️ {error}</div>
+            )}
 
-            <form onSubmit={(e) => handleAuth(e, 'admin', isAdminRegister)} style={styles.form}>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelDark}>Admin Email</label>
+            <form onSubmit={(e) => handleAuth(e, 'admin', isAdminRegister)} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-300">Admin Email</label>
                 <input 
                   type="email" 
                   placeholder="admin@university.com" 
                   value={adminEmail}
                   onChange={e => setAdminEmail(e.target.value)}
                   required 
-                  style={styles.darkInput}
+                  className="p-2.5 rounded-md border border-gray-600 bg-gray-700 text-white text-sm w-full outline-none focus:border-emerald-500"
                 />
               </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelDark}>Password</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm font-medium text-gray-300">Password</label>
                 <input 
                   type="password" 
                   placeholder="••••••••" 
                   value={adminPassword}
                   onChange={e => setAdminPassword(e.target.value)}
                   required 
-                  style={styles.darkInput}
+                  className="p-2.5 rounded-md border border-gray-600 bg-gray-700 text-white text-sm w-full outline-none focus:border-emerald-500"
                 />
               </div>
 
-              {/* Security Validation Field triggered on Admin Sign Up */}
               {isAdminRegister && (
-                <div style={styles.inputGroup}>
-                  <label style={{ ...styles.labelDark, color: '#f87171' }}>Master Admin Email Verification</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-red-400">Master Admin Email Verification</label>
                   <input 
                     type="email" 
                     placeholder="existing.admin@university.com" 
                     value={masterAdminEmail}
                     onChange={e => setMasterAdminEmail(e.target.value)}
                     required 
-                    style={{ ...styles.darkInput, border: '1px solid #ef4444' }}
+                    className="p-2.5 rounded-md border border-red-500 bg-gray-700 text-white text-sm w-full outline-none"
                   />
                 </div>
               )}
 
-              <button type="submit" style={styles.adminBtn}>
+              <button type="submit" className="p-3 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-semibold cursor-pointer transition-colors">
                 {isAdminRegister ? 'Deploy New Admin' : 'Secure Admin Login'}
               </button>
 
-              <div style={styles.toggleRow}>
-                <span onClick={() => setIsAdminRegister(!isAdminRegister)} style={styles.linkDark}>
+              <div className="text-center mt-1">
+                <span onClick={() => setIsAdminRegister(!isAdminRegister)} className="text-xs text-emerald-400 cursor-pointer underline">
                   {isAdminRegister ? 'Cancel Registration' : 'New Admin? Register Profile'}
                 </span>
               </div>
             </form>
 
-            <div style={{ ...styles.switchTerminalBox, borderTop: '1px solid #374151' }}>
-              <p style={{ fontSize: '13px', color: '#9ca3af', margin: '0 0 8px 0' }}>Are you a test taker?</p>
-              <button type="button" onClick={() => scrollToPanel(0)} style={styles.slidePrevBtn}>
+            <div className="mt-6 pt-5 border-t border-gray-700 text-center">
+              <p className="text-xs text-gray-400 mb-2">Are you a test taker?</p>
+              <button type="button" onClick={() => scrollToPanel(0)} className="bg-transparent border-none text-gray-400 hover:text-gray-200 cursor-pointer font-semibold text-sm">
                 ◀ Return to Student Portal
               </button>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-// Styles configuration optimized for continuous horizontal slide behaviors
-const styles = {
-  viewWindow: { width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', fontFamily: 'sans-serif' },
-  scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
-  panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
-  panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
-  
-  // Animation Container CSS Style Rules
-  animationWrapper: {
-    position: 'absolute',
-    bottom: '20px', 
-    left: '0',
-    zIndex: 10, 
-    pointerEvents: 'none', 
-    animation: 'walkAcrossScreen 15s linear infinite', 
-  },
-  animationImg: {
-    width: '130px',
-    height: 'auto',
-  },
-
-  card: { backgroundColor: '#ffffff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', width: '380px' },
-  header: { textAlign: 'center', marginBottom: '25px' },
-  form: { display: 'flex', flexDirection: 'column', gap: '15px' },
-  inputGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
-  labelLight: { fontSize: '14px', fontWeight: '500', color: '#374151' },
-  labelDark: { fontSize: '14px', fontWeight: '500', color: '#d1d5db' },
-  lightInput: { padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '14px' },
-  darkInput: { padding: '10px', borderRadius: '6px', border: '1px solid #4b5563', backgroundColor: '#374151', color: '#ffffff', fontSize: '14px' },
+export default IndexPortal;
