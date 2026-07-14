@@ -13,11 +13,9 @@ const TakeExam = () => {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  // Keeps typing snappy in the coding editor textarea
   const [localCode, setLocalCode] = useState('');
   const studentEmail = localStorage.getItem('userEmail') || 'student@domain.com';
 
-  // Fetch Exam Data
   useEffect(() => {
     if (!examId) {
       setError('⚠️ Invalid Exam reference mapping token. (Prop "examId" is missing or undefined)');
@@ -35,237 +33,292 @@ const TakeExam = () => {
           setExam(data);
           setQuestions(data.questions || []);
           
-          if (data.endDate) {
-            const endTime = new Date(data.endDate).getTime();
-            const now = new Date().getTime();
-            const difference = Math.floor((endTime - now) / 1000);
-            setTimeLeft(difference > 0 ? difference : 0);
-          } else {
-            setTimeLeft(3600); // 1-Hour Fallback
-          }
+          const endTimestamp = new Date(data.endDate).getTime();
+          const currentTimestamp = new Date().getTime();
+          const remainingSeconds = Math.max(0, Math.floor((endTimestamp - currentTimestamp) / 1000));
+          setTimeLeft(remainingSeconds);
         }
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Fetch operational failure:", err);
-        setError('⚠️ Failed to load exam. Check backend connection or Exam ID validity.');
+        setError(err.message || 'Failed to sync exam frame.');
         setLoading(false);
       });
   }, [examId]);
 
-  // Countdown Timer
   useEffect(() => {
     if (timeLeft === null) return;
     if (timeLeft <= 0) {
-      handleAutoSubmit();
+      handleSubmitExamSheet();
       return;
     }
     const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     return () => clearTimeout(timer);
   }, [timeLeft]);
 
-  // Sync local code editor text state when navigating questions
   useEffect(() => {
-    if (questions[currentIdx]?.type === 'coding') {
-      setLocalCode(answers[currentIdx]?.code || '');
+    if (questions[currentIdx]) {
+      const saved = answers[currentIdx];
+      if (saved && typeof saved === 'object') {
+        setLocalCode(saved.code || '');
+      } else {
+        setLocalCode('');
+      }
     }
   }, [currentIdx, questions]);
 
-  const handleMcqSelect = (option) => {
-    setAnswers({ ...answers, [currentIdx]: option });
+  const handleSelectOption = (optionLetter) => {
+    setAnswers({
+      ...answers,
+      [currentIdx]: optionLetter
+    });
   };
 
-  const handleLocalCodeChange = (val) => {
+  const handleCodeChange = (val) => {
     setLocalCode(val);
-    const currentAnswer = answers[currentIdx] || { code: '', lang: questions[currentIdx]?.allowedLanguages?.[0] || 'javascript' };
-    setAnswers({ ...answers, [currentIdx]: { ...currentAnswer, code: val } });
+    const currentQuestion = questions[currentIdx];
+    const chosenLang = answers[currentIdx]?.lang || (currentQuestion?.allowedLanguages?.[0] || 'javascript');
+    
+    setAnswers({
+      ...answers,
+      [currentIdx]: {
+        lang: chosenLang,
+        code: val
+      }
+    });
   };
 
-  const handleLanguageChange = (langVal) => {
-    const currentAnswer = answers[currentIdx] || { code: localCode, lang: langVal };
-    setAnswers({ ...answers, [currentIdx]: { ...currentAnswer, lang: langVal } });
+  const handleLanguageSelect = (lang) => {
+    setAnswers({
+      ...answers,
+      [currentIdx]: {
+        lang: lang,
+        code: localCode
+      }
+    });
   };
 
-  const formatTime = (seconds) => {
-    if (seconds <= 0) return "00:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const buildPayload = () => ({
-    email: studentEmail,
-    examId,
-    examTitle: exam?.title || 'Exam Session',
-    studentAnswers: answers
-  });
-
-  const handleAutoSubmit = () => {
+  const handleSubmitExamSheet = () => {
     if (submitting) return;
     setSubmitting(true);
-    
-    fetch('/api/student/submit-exam', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload())
-    })
-    .then(() => {
-      alert("🛑 Time expired! Your answers were automatically saved.");
-      navigate('/dashboard');
-    })
-    .catch(() => navigate('/dashboard'));
-  };
-
-  const manualSubmit = () => {
-    if (!window.confirm("Are you sure you want to submit your final exam configuration?")) return;
-    setSubmitting(true);
 
     fetch('/api/student/submit-exam', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(buildPayload())
+      body: JSON.stringify({
+        email: studentEmail,
+        examId: examId,
+        examTitle: exam?.title || 'Exam Assessment',
+        answers: answers
+      })
     })
     .then((res) => {
-      if (!res.ok) throw new Error();
-      alert("🎉 Exam answers logged and synced successfully!");
+      if (!res.ok) throw new Error('Failed to transmit score matrices.');
+      return res.json();
+    })
+    .then(() => {
+      alert('🎉 Assessment submitted successfully!');
       navigate('/dashboard');
     })
-    .catch(() => {
-      alert("Failed to sync structural scores matrix with database.");
+    .catch((err) => {
+      alert(`⚠️ Submission Error: ${err.message}`);
       setSubmitting(false);
     });
   };
 
-  if (loading) return <div style={styles.fallbackScreen}>🔄 Loading Exam Workspace...</div>;
-  if (error) return <div style={{ ...styles.fallbackScreen, color: '#ef4444', fontWeight: 'bold' }}>{error}</div>;
+  const formatTimerString = (seconds) => {
+    if (seconds === null) return '--:--';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
-  const currentQuestion = questions[currentIdx];
-  const totalQuestions = questions.length;
+  if (loading) return <div style={{ padding: '40px', backgroundColor: '#0f172a', color: '#94a3b8', height: '100vh', textAlign: 'center' }}>🔄 Securing Exam Workspace Tunnel...</div>;
+  if (error) return <div style={{ padding: '40px', backgroundColor: '#0f172a', color: '#ef4444', height: '100vh', textAlign: 'center' }}>{error}</div>;
+
+  const activeQuestion = questions[currentIdx];
 
   return (
-    <div style={styles.examWrapper}>
-      <div style={styles.examHeader}>
+    <div style={styles.examViewportFrame} className="page-fade-in">
+      {/* Top Banner Control Track */}
+      <div style={styles.examTopNavbar}>
         <div>
-          <h2 style={{ margin: 0, color: '#f8fafc', fontSize: '20px' }}>{exam?.title}</h2>
-          <span style={{ color: '#64748b', fontSize: '13px' }}>User: {studentEmail}</span>
+          <h2 style={{ margin: 0, fontSize: '18px', color: '#f8fafc' }}>{exam?.title}</h2>
+          <span style={{ fontSize: '12px', color: '#94a3b8' }}>Session Candidate Profile: {studentEmail}</span>
         </div>
-        <div style={styles.timerBox}>
-          <span style={styles.controlLabel}>⏱️ REMAINING TIME</span>
-          <div style={{ fontSize: '22px', fontWeight: 'bold', color: timeLeft < 300 ? '#ef4444' : '#10b981' }}>{formatTime(timeLeft)}</div>
+        <div style={styles.timerBadgeContainer}>
+          <span style={{ fontSize: '12px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 'bold' }}>Remaining Duration Clock:</span>
+          <span style={{ fontSize: '20px', fontWeight: 'bold', color: timeLeft < 300 ? '#ef4444' : '#10b981' }}>{formatTimerString(timeLeft)}</span>
         </div>
       </div>
 
-      <div style={styles.workspaceBody}>
-        {totalQuestions === 0 ? (
-          <div style={{ padding: '40px', color: '#94a3b8', textAlign: 'center', width: '100%' }}>No assessment layers active.</div>
-        ) : currentQuestion?.type === 'coding' ? (
-          <div style={{ display: 'flex', width: '100%', height: '100%' }}>
-            <div style={styles.leftInstructionPanel}>
-              <span style={styles.qIndexBadge}>CHALLENGE {currentIdx + 1} OF {totalQuestions} (CODE)</span>
-              <p style={styles.problemStatementText}>{currentQuestion.codingProblemStatement || currentQuestion.text}</p>
-            </div>
-            <div style={styles.rightEditorPanel}>
-              <div style={styles.editorToolbarHeader}>
-                <span style={styles.controlLabel}>💻 RESOURCE COMPILATION CODE EDITOR</span>
-                <select 
-                  value={answers[currentIdx]?.lang || currentQuestion.allowedLanguages?.[0] || 'javascript'} 
-                  onChange={(e) => handleLanguageChange(e.target.value)}
-                  style={styles.languageDropdown}
+      {/* Primary Split Viewport Box */}
+      <div style={styles.mainSplitLayoutWindow}>
+        {/* Left Hand Navigation Grid Panel */}
+        <div style={styles.sidebarQuestionTracker} className="sidebar-fade-in">
+          <h4 style={{ margin: '0 0 15px 0', color: '#94a3b8', fontSize: '12px', textTransform: 'uppercase' }}>Items Checklist Matrix</h4>
+          <div style={styles.numericalIndicatorGrid}>
+            {questions.map((_, idx) => {
+              const isVisited = answers[idx] !== undefined;
+              const isActive = idx === currentIdx;
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIdx(idx)}
+                  style={{
+                    ...styles.gridIdxBtn,
+                    backgroundColor: isActive ? '#3b82f6' : isVisited ? '#1e293b' : '#0f172a',
+                    borderColor: isActive ? '#60a5fa' : '#334155',
+                    color: isActive ? '#ffffff' : isVisited ? '#3b82f6' : '#64748b'
+                  }}
+                  className="btn-animated"
                 >
-                  {(currentQuestion.allowedLanguages || ['javascript', 'python', 'java', 'cpp']).map((l) => (
-                    <option key={l} value={l}>{l.toUpperCase()}</option>
-                  ))}
-                </select>
-              </div>
-              <textarea
-                value={localCode}
-                onChange={(e) => handleLocalCodeChange(e.target.value)}
-                placeholder={`// Enter code syntax configurations here...`}
-                style={styles.codeTextareaEditor}
-                spellCheck="false"
-              />
-            </div>
+                  {idx + 1}
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <div style={styles.mcqContainerWrapper}>
-            <div style={styles.mcqCard}>
-              <span style={{ ...styles.qIndexBadge, color: '#64748b' }}>QUESTION {currentIdx + 1} OF {totalQuestions} (MCQ)</span>
-              <p style={styles.mcqQuestionBodyText}>{currentQuestion?.text || currentQuestion?.questionText}</p>
-              <div style={styles.optionsListGrid}>
-                {['A', 'B', 'C', 'D'].map((opt) => {
-                  const choiceString = currentQuestion?.[`option${opt}`];
-                  if (!choiceString) return null;
-                  const isSelected = answers[currentIdx] === opt;
-                  return (
-                    <button
-                      key={opt}
-                      onClick={() => handleMcqSelect(opt)}
-                      style={{
-                        ...styles.optionRowBtn,
-                        borderColor: isSelected ? '#3b82f6' : '#334155',
-                        backgroundColor: isSelected ? '#1e293b' : '#0f172a'
-                      }}
-                    >
-                      <span style={{
-                        ...styles.optionSelectorLetter,
-                        backgroundColor: isSelected ? '#3b82f6' : '#1e293b',
-                        color: '#ffffff'
-                      }}>{opt}</span>
-                      <span style={styles.optionStringValue}>{choiceString}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
 
-      <div style={styles.examFooter}>
-        <button 
-          disabled={currentIdx === 0} 
-          onClick={() => setCurrentIdx(currentIdx - 1)}
-          style={{ ...styles.navActionBtn, opacity: currentIdx === 0 ? 0.5 : 1 }}
-        >
-          ⏮️ Previous
-        </button>
-        <div>
-          {currentIdx < totalQuestions - 1 ? (
-            <button onClick={() => setCurrentIdx(currentIdx + 1)} style={styles.nextStepBtn}>Next ⏭️</button>
+        {/* Right Hand Question Panel Container */}
+        <div style={styles.questionWorkspaceViewport}>
+          {activeQuestion ? (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div style={styles.questionMetaHeaderRow}>
+                <span style={{ padding: '4px 10px', backgroundColor: '#1e293b', borderRadius: '4px', fontSize: '12px', color: '#3b82f6', fontWeight: 'bold' }}>
+                  QUESTION COMPONENT #{currentIdx + 1} ({activeQuestion.type?.toUpperCase()})
+                </span>
+              </div>
+
+              <div style={styles.problemStatementContainerCard}>
+                <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{activeQuestion.text}</p>
+              </div>
+
+              {/* MULTIPLE CHOICE TYPE SELECTOR BLOCKS */}
+              {activeQuestion.type === 'mcq' && (
+                <div style={styles.optionsListGrid}>
+                  {['A', 'B', 'C', 'D'].map((letter) => {
+                    const optionText = activeQuestion[`option${letter}`];
+                    const isSelected = answers[currentIdx] === letter;
+
+                    return (
+                      <button
+                        key={letter}
+                        onClick={() => handleSelectOption(letter)}
+                        style={{
+                          ...styles.optionRowBtn,
+                          backgroundColor: isSelected ? '#1e3a8a' : '#1e293b',
+                          borderColor: isSelected ? '#3b82f6' : '#334155'
+                        }}
+                        className="mcq-option-animated"
+                      >
+                        <span style={{
+                          ...styles.optionSelectorLetter,
+                          backgroundColor: isSelected ? '#3b82f6' : '#0f172a',
+                          color: isSelected ? '#ffffff' : '#94a3b8'
+                        }}>{letter}</span>
+                        <span style={styles.optionStringValue}>{optionText}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* COMPLEX LAB WORKSPACE COMPILER PANEL */}
+              {activeQuestion.type === 'coding' && (
+                <div style={styles.codingWorkspaceModule}>
+                  <div style={{ padding: '15px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: '13px', color: '#94a3b8' }}>🔒 Problem Context: Fill in missing implementation blocks below</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>Target Compiler:</span>
+                      <select
+                        value={answers[currentIdx]?.lang || activeQuestion.allowedLanguages?.[0] || 'javascript'}
+                        onChange={(e) => handleLanguageSelect(e.target.value)}
+                        style={styles.languageDropdownMenu}
+                        className="input-animated"
+                      >
+                        {(activeQuestion.allowedLanguages || ['javascript', 'python', 'java']).map((lang) => (
+                          <option key={lang} value={lang}>{lang.toUpperCase()}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={styles.editorFlexAreaBox}>
+                    <textarea
+                      value={localCode}
+                      onChange={(e) => handleCodeChange(e.target.value)}
+                      placeholder="// Insert clean modular execution logic paths here..."
+                      style={styles.codeTextareaField}
+                      className="input-animated"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
-            <button onClick={manualSubmit} disabled={submitting} style={styles.finishSubmitBtn}>🏁 Submit Exam</button>
+            <div style={{ color: '#64748b', textAlign: 'center', padding: '40px' }}>No question structure is mapped onto this specific index panel slot.</div>
           )}
         </div>
+      </div>
+
+      {/* Bottom Control Actions Ribbon */}
+      <div style={styles.examFooter}>
+        <button
+          onClick={() => setCurrentIdx(Math.max(0, currentIdx - 1))}
+          disabled={currentIdx === 0}
+          style={{ ...styles.navActionBtn, opacity: currentIdx === 0 ? 0.4 : 1 }}
+          className="btn-animated"
+        >
+          ◀ Previous Question
+        </button>
+
+        {currentIdx < questions.length - 1 ? (
+          <button
+            onClick={() => setCurrentIdx(currentIdx + 1)}
+            style={styles.nextStepBtn}
+            className="btn-animated"
+          >
+            Advance Next Item ▶
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmitExamSheet}
+            disabled={submitting}
+            style={{ ...styles.nextStepBtn, backgroundColor: '#10b981' }}
+            className="btn-animated"
+          >
+            {submitting ? 'Transmitting Core Manifest...' : '🔒 Submit Verified Answer Sheet'}
+          </button>
+        )}
       </div>
     </div>
   );
 };
 
 const styles = {
-  examWrapper: { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#0f172a', fontFamily: 'sans-serif', overflow: 'hidden' },
-  examHeader: { height: '80px', backgroundColor: '#1e293b', padding: '0 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' },
-  timerBox: { backgroundColor: '#111827', padding: '8px 16px', borderRadius: '8px', border: '1px solid #334155', textAlign: 'center', minWidth: '130px' },
-  controlLabel: { fontSize: '11px', color: '#94a3b8', fontWeight: 'bold', display: 'block', marginBottom: '2px' },
-  workspaceBody: { flex: 1, display: 'flex', overflow: 'hidden', backgroundColor: '#0f172a' },
-  leftInstructionPanel: { width: '40%', backgroundColor: '#1e293b', borderRight: '1px solid #334155', padding: '30px', overflowY: 'auto', boxSizing: 'border-box' },
-  rightEditorPanel: { width: '60%', display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#0f172a' },
-  editorToolbarHeader: { height: '50px', backgroundColor: '#111827', padding: '0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' },
-  languageDropdown: { backgroundColor: '#1e293b', color: '#f8fafc', border: '1px solid #475569', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer' },
-  codeTextareaEditor: { flex: 1, backgroundColor: '#090d16', color: '#38bdf8', border: 'none', padding: '25px', fontSize: '15px', fontFamily: 'monospace', outline: 'none', resize: 'none', lineHeight: '1.6' },
-  mcqContainerWrapper: { flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '30px', overflowY: 'auto' },
-  mcqCard: { backgroundColor: '#1e293b', borderRadius: '12px', padding: '35px', width: '100%', maxWidth: '700px', border: '1px solid #334155' },
-  qIndexBadge: { fontSize: '12px', color: '#3b82f6', fontWeight: 'bold', display: 'block', marginBottom: '15px' },
-  problemStatementText: { color: '#e2e8f0', fontSize: '16px', lineHeight: '1.7', margin: 0 },
-  mcqQuestionBodyText: { color: '#f8fafc', fontSize: '18px', fontWeight: 'bold', margin: '0 0 25px 0' },
+  examViewportFrame: { width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#0f172a', color: '#e2e8f0', fontFamily: 'sans-serif', overflow: 'hidden' },
+  examTopNavbar: { height: '70px', backgroundColor: '#111827', borderBottom: '1px solid #334155', padding: '0 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  timerBadgeContainer: { display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#1e293b', padding: '8px 16px', borderRadius: '8px', border: '1px solid #334155' },
+  mainSplitLayoutWindow: { flex: 1, display: 'flex', overflow: 'hidden' },
+  sidebarQuestionTracker: { width: '250px', backgroundColor: '#111827', borderRight: '1px solid #334155', padding: '20px', overflowY: 'auto' },
+  numericalIndicatorGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' },
+  gridIdxBtn: { height: '40px', borderRadius: '6px', border: '1px solid', fontWeight: 'bold', fontSize: '14px', outline: 'none' },
+  questionWorkspaceViewport: { flex: 1, backgroundColor: '#0f172a', padding: '30px', overflowY: 'auto' },
+  questionMetaHeaderRow: { marginBottom: '15px' },
+  problemStatementContainerCard: { backgroundColor: '#111827', border: '1px solid #334155', padding: '20px', borderRadius: '8px', fontSize: '16px', color: '#f8fafc', marginBottom: '25px' },
   optionsListGrid: { display: 'flex', flexDirection: 'column', gap: '12px' },
   optionRowBtn: { display: 'flex', alignItems: 'center', padding: '14px', borderRadius: '8px', border: '1px solid #334155', cursor: 'pointer', textAlign: 'left', outline: 'none' },
   optionSelectorLetter: { width: '30px', height: '30px', borderRadius: '6px', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', marginRight: '15px' },
   optionStringValue: { color: '#e2e8f0', fontSize: '15px' },
+  codingWorkspaceModule: { display: 'flex', flexDirection: 'column', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', flex: 1, minHeight: '350px' },
+  languageDropdownMenu: { backgroundColor: '#0f172a', color: '#f8fafc', border: '1px solid #334155', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', outline: 'none' },
+  editorFlexAreaBox: { flex: 1, display: 'flex' },
+  codeTextareaField: { flex: 1, backgroundColor: '#0f172a', color: '#34d399', fontFamily: 'monospace', fontSize: '14px', padding: '15px', border: 'none', outline: 'none', resize: 'none' },
   examFooter: { height: '75px', backgroundColor: '#111827', borderTop: '1px solid #334155', padding: '0 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   navActionBtn: { backgroundColor: '#1e293b', color: '#94a3b8', border: '1px solid #334155', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer' },
-  nextStepBtn: { backgroundColor: '#3b82f6', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
-  finishSubmitBtn: { backgroundColor: '#10b981', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },
-  fallbackScreen: { padding: '50px', color: '#94a3b8', textAlign: 'center', backgroundColor: '#0f172a', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '18px' }
+  nextStepBtn: { backgroundColor: '#3b82f6', color: '#ffffff', border: 'none', padding: '10px 22px', borderRadius: '6px', cursor: 'pointer' }
 };
 
 export default TakeExam;
