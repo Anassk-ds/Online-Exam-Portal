@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from './useTheme.js';
+import StudyNotes from './StudyNotes.jsx';
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('Home'); 
   const [examsList, setExamsList] = useState([]); 
   const [results, setResults] = useState([]);
@@ -80,6 +83,12 @@ const StudentDashboard = () => {
           <button onClick={() => setActiveTab('Home')} style={{ ...styles.menuBtn, backgroundColor: activeTab === 'Home' ? '#1e293b' : 'transparent', color: activeTab === 'Home' ? '#3b82f6' : '#94a3b8' }} className="sidebar-item-animated">🏠 Central Hub</button>
           <button onClick={() => setActiveTab('Exams')} style={{ ...styles.menuBtn, backgroundColor: activeTab === 'Exams' ? '#1e293b' : 'transparent', color: activeTab === 'Exams' ? '#3b82f6' : '#94a3b8' }} className="sidebar-item-animated">✍️ Available Slots</button>
           <button onClick={() => setActiveTab('Results')} style={{ ...styles.menuBtn, backgroundColor: activeTab === 'Results' ? '#1e293b' : 'transparent', color: activeTab === 'Results' ? '#3b82f6' : '#94a3b8' }} className="sidebar-item-animated">📊 Performance Review</button>
+          <button onClick={() => setActiveTab('Notes')} style={{ ...styles.menuBtn, backgroundColor: activeTab === 'Notes' ? '#1e293b' : 'transparent', color: activeTab === 'Notes' ? '#3b82f6' : '#94a3b8' }} className="sidebar-item-animated">📝 Study Notes</button>
+        </div>
+        <div style={{ padding: '0 20px 15px' }}>
+          <button onClick={toggleTheme} className="theme-toggle-btn btn-animated" style={{ width: '100%' }}>
+            {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+          </button>
         </div>
         <button onClick={handleLogout} style={styles.logoutBtnRow} className="btn-animated">🚪 Log Out Profile</button>
       </div>
@@ -206,24 +215,26 @@ const StudentDashboard = () => {
             </div>
           </div>
         )}
+
+        {activeTab === 'Notes' && <StudyNotes studentEmail={studentEmail} />}
       </div>
     </div>
   );
 };
 
 const styles = {
-  dashboardContainer: { display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#f8fafc', fontFamily: 'sans-serif' },
+  dashboardContainer: { display: 'flex', width: '100vw', height: '100vh', backgroundColor: 'var(--background)', color: 'var(--text)', fontFamily: 'sans-serif' },
   sidebarPanel: { width: '260px', backgroundColor: '#0f172a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' },
   navigationMenuOptions: { flex: 1, display: 'flex', flexDirection: 'column', gap: '5px', padding: '0 10px' },
   menuBtn: { border: 'none', padding: '13px 15px', borderRadius: '8px', textAlign: 'left', fontSize: '13px', fontWeight: '600', outline: 'none' },
   logoutBtnRow: { margin: '20px', padding: '12px', backgroundColor: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 'bold', outline: 'none', textAlign: 'center' },
   mainViewportWorkspace: { flex: 1, padding: '40px', overflowY: 'auto' },
   welcomeBannerCard: { backgroundColor: '#3b82f6', color: '#fff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(59,130,246,0.15)' },
-  miniMetricWidgetBox: { backgroundColor: '#fff', padding: '25px', borderRadius: '16px', border: '1px solid #e2e8f0' },
-  sectionAreaCard: { backgroundColor: '#fff', padding: '30px', borderRadius: '16px', border: '1px solid #e2e8f0' },
-  sectionCardTitle: { fontSize: '18px', margin: '0 0 20px 0', color: '#0f172a', fontWeight: '700' },
+  miniMetricWidgetBox: { backgroundColor: 'var(--surface)', color: 'var(--text)', padding: '25px', borderRadius: '16px', border: '1px solid var(--border)' },
+  sectionAreaCard: { backgroundColor: 'var(--surface)', color: 'var(--text)', padding: '30px', borderRadius: '16px', border: '1px solid var(--border)' },
+  sectionCardTitle: { fontSize: '18px', margin: '0 0 20px 0', color: 'var(--text)', fontWeight: '700' },
   list: { display: 'flex', flexDirection: 'column', gap: '12px' },
-  itemCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '12px' },
+  itemCard: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px', backgroundColor: 'var(--surface)', color: 'var(--text)', border: '1px solid var(--border)', borderRadius: '12px' },
   startBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', outline: 'none' }
 };
 
