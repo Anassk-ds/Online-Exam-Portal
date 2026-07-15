@@ -3,35 +3,58 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
-// Custom Hook to drive real-time frame animations without CSS files
-const useLiveFrameAnimation = () => {
-  const [offset, setOffset] = useState(0);
-  
-  useEffect(() => {
-    let animationFrameId;
-    
-    const updateLoop = (time) => {
-      // Creates a smooth, infinite wave oscillation using sine math
-      const waveValue = Math.sin(time / 800) * 12; // Moves up/down by 12px
-      setOffset(waveValue);
-      animationFrameId = requestAnimationFrame(updateLoop);
-    };
-    
-    animationFrameId = requestAnimationFrame(updateLoop);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, []);
+// Custom Hook to manage the dynamic entrance slide-in frame animation loops smoothly
+const useSlideEntranceAnimation = (triggerReset) => {
+  const [positionX, setPositionX] = useState(-300); // Start far off to the left side
+  const [contentVisible, setContentVisible] = useState(false);
 
-  return offset;
+  useEffect(() => {
+    let startTimestamp = null;
+    const duration = 1200; // Total milliseconds for the entrance slide path
+
+    const animateStep = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = timestamp - startTimestamp;
+
+      // Calculate translation offset tracking towards 0 (the absolute center matrix)
+      const currentProgressRatio = Math.min(progress / duration, 1);
+      
+      // Smooth deceleration curve formula (ease-out cubic variant)
+      const easeOutModifier = 1 - Math.pow(1 - currentProgressRatio, 3);
+      const calculatedX = -300 + (300 * easeOutModifier);
+      
+      setPositionX(calculatedX);
+
+      if (currentProgressRatio < 1) {
+        requestAnimationFrame(animateStep);
+      } else {
+        setContentVisible(true); // Reveal structural fields when centering is achieved
+      }
+    };
+
+    // Reset parameters on slider console switches
+    setPositionX(-300);
+    setContentVisible(false);
+    
+    const frameId = requestAnimationFrame(animateStep);
+    return () => cancelAnimationFrame(frameId);
+  }, [triggerReset]);
+
+  return { positionX, contentVisible };
 };
 
 const IndexPortal = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  
-  // Driving the real-time card float coordinate engine
-  const yOffset = useLiveFrameAnimation();
 
-  // Module 1 (Day-45): Auto-navigate if session exists
+  // Tracks active active console slide context index: 0 for Student, 1 for Admin
+  const [activePanel, setActivePanel] = useState(0);
+
+  // Bind the hook instances to separate tracking index dependencies
+  const studentMotion = useSlideEntranceAnimation(activePanel === 0);
+  const adminMotion = useSlideEntranceAnimation(activePanel === 1);
+
+  // Module 1 (Day-45): if login details are already in Local Storage, skip form entirely
   useEffect(() => {
     const loggedInUser = getLogin();
     if (loggedInUser && loggedInUser.role) {
@@ -61,6 +84,7 @@ const IndexPortal = () => {
   const scrollToPanel = (panelIndex) => {
     setError('');
     setSuccess('');
+    setActivePanel(panelIndex);
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTo({
         left: panelIndex * scrollContainerRef.current.clientWidth,
@@ -114,10 +138,13 @@ const IndexPortal = () => {
 
   return (
     <div style={styles.viewWindow}>
-      <button onClick={toggleTheme} style={styles.themeToggle}>
+      <button
+        onClick={toggleTheme}
+        className="theme-toggle-btn"
+        style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10 }}
+      >
         {theme === 'light' ? '🌙' : '☀️'}
       </button>
-
       <div style={styles.scrollWrapper} ref={scrollContainerRef}>
         
         {/* ================= PANEL 1: STUDENT PORTAL ================= */}
@@ -125,75 +152,75 @@ const IndexPortal = () => {
           <div 
             style={{ 
               ...styles.card,
-              // Direct JavaScript injection enforces floating animation instantly
-              transform: `translateY(${yOffset}px)`,
-              boxShadow: `0 ${20 + yOffset}px 30px rgba(16, 185, 129, 0.15)`
+              // Applies dynamic offset transition calculated by requestAnimationFrame loop
+              transform: `translateX(${studentMotion.positionX}px)`,
+              opacity: 1
             }}
           >
             <div style={styles.header}>
               <h2 style={{ color: '#1f2937', margin: '0 0 5px 0' }}>Student Portal</h2>
-              <div style={styles.liveIndicatorContainer}>
-                <span style={styles.liveDotGreen}></span>
-                <p style={{ color: '#6b7280', fontSize: '11px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terminal Online</p>
-              </div>
+              <p style={{ color: '#6b7280', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Online Examination Terminal</p>
             </div>
 
-            {error && !isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
-            {success && !isAdminRegister && <div style={styles.successAlert}>{success}</div>}
+            {/* Container element dynamically reveals portal parameters smoothly upon layout arriving at absolute zero center */}
+            <div style={{ opacity: studentMotion.contentVisible ? 1 : 0, transition: 'opacity 0.4s ease-in-out' }}>
+              {error && !isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+              {success && !isAdminRegister && <div style={styles.successAlert}>{success}</div>}
 
-            <form onSubmit={(e) => handleAuth(e, 'student', isStudentRegister)} style={styles.form}>
-              {isStudentRegister && (
+              <form onSubmit={(e) => handleAuth(e, 'student', isStudentRegister)} style={styles.form}>
+                {isStudentRegister && (
+                  <div style={styles.inputGroup}>
+                    <label style={styles.labelLight}>Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Jane Doe" 
+                      value={studentName}
+                      onChange={e => setStudentName(e.target.value)}
+                      required 
+                      style={styles.lightInput}
+                    />
+                  </div>
+                )}
                 <div style={styles.inputGroup}>
-                  <label style={styles.labelLight}>Full Name</label>
+                  <label style={styles.labelLight}>Student Email</label>
                   <input 
-                    type="text" 
-                    placeholder="Jane Doe" 
-                    value={studentName}
-                    onChange={e => setStudentName(e.target.value)}
+                    type="email" 
+                    placeholder="student@university.com" 
+                    value={studentEmail}
+                    onChange={e => setStudentEmail(e.target.value)}
                     required 
                     style={styles.lightInput}
                   />
                 </div>
-              )}
-              <div style={styles.inputGroup}>
-                <label style={styles.labelLight}>Student Email</label>
-                <input 
-                  type="email" 
-                  placeholder="student@university.com" 
-                  value={studentEmail}
-                  onChange={e => setStudentEmail(e.target.value)}
-                  required 
-                  style={styles.lightInput}
-                />
-              </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelLight}>Password</label>
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={studentPassword}
-                  onChange={e => setStudentPassword(e.target.value)}
-                  required 
-                  style={styles.lightInput}
-                />
-              </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.labelLight}>Password</label>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={studentPassword}
+                    onChange={e => setStudentPassword(e.target.value)}
+                    required 
+                    style={styles.lightInput}
+                  />
+                </div>
 
-              <button type="submit" disabled={submitting} style={{ ...styles.studentBtn, opacity: submitting ? 0.7 : 1 }}>
-                {submitting ? 'Authenticating...' : (isStudentRegister ? 'Register Profile' : 'Secure Student Sign In')}
-              </button>
+                <button type="submit" disabled={submitting} style={{ ...styles.studentBtn, opacity: submitting ? 0.7 : 1 }}>
+                  {submitting ? 'Please wait...' : (isStudentRegister ? 'Register Profile' : 'Secure Student Sign In')}
+                </button>
 
-              <div style={styles.toggleRow}>
-                <span onClick={() => { setIsStudentRegister(!isStudentRegister); setError(''); setSuccess(''); }} style={styles.linkLight}>
-                  {isStudentRegister ? 'Already have an account? Sign In' : 'New student? Register Here'}
-                </span>
+                <div style={styles.toggleRow}>
+                  <span onClick={() => { setIsStudentRegister(!isStudentRegister); setError(''); setSuccess(''); }} style={styles.linkLight}>
+                    {isStudentRegister ? 'Already have an account? Sign In' : 'New student? Register Here'}
+                  </span>
+                </div>
+              </form>
+
+              <div style={styles.switchTerminalBox}>
+                <p style={{ fontSize: '13px', color: '#4b5563', margin: '0 0 8px 0' }}>Need administrative tools?</p>
+                <button type="button" onClick={() => scrollToPanel(1)} style={styles.slideNextBtn}>
+                  Slide to Admin Console ➔
+                </button>
               </div>
-            </form>
-
-            <div style={styles.switchTerminalBox}>
-              <p style={{ fontSize: '13px', color: '#4b5563', margin: '0 0 8px 0' }}>Need administrative tools?</p>
-              <button type="button" onClick={() => scrollToPanel(1)} style={styles.slideNextBtn}>
-                Slide to Admin Console ➔
-              </button>
             </div>
           </div>
         </div>
@@ -205,75 +232,75 @@ const IndexPortal = () => {
               ...styles.card, 
               backgroundColor: '#1f2937', 
               border: '1px solid #374151',
-              // Dynamic displacement out of step with the student console
-              transform: `translateY(${-yOffset}px)`, 
-              boxShadow: `0 ${25 - yOffset}px 40px rgba(79, 70, 229, 0.3)`
+              // Applies independent opposite drift displacement until centered matrix confirmation
+              transform: `translateX(${adminMotion.positionX}px)`,
+              opacity: 1
             }}
           >
             <div style={styles.header}>
               <h2 style={{ color: '#f9fafb', margin: '0 0 5px 0' }}>Admin Console</h2>
-              <div style={styles.liveIndicatorContainer}>
-                <span style={styles.liveDotBlue}></span>
-                <p style={{ color: '#9ca3af', fontSize: '11px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Infrastructure Nodes Active</p>
-              </div>
+              <p style={{ color: '#9ca3af', fontSize: '12px', margin: 0, textTransform: 'uppercase' }}>Secure Infrastructure Access</p>
             </div>
 
-            {error && isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
-            {success && isAdminRegister && <div style={styles.successAlert}>{success}</div>}
+            {/* Container element dynamically reveals terminal values upon achieving absolute center alignment coordinates */}
+            <div style={{ opacity: adminMotion.contentVisible ? 1 : 0, transition: 'opacity 0.4s ease-in-out' }}>
+              {error && isAdminRegister && <div style={styles.errorAlert}>⚠️ {error}</div>}
+              {success && isAdminRegister && <div style={styles.successAlert}>{success}</div>}
 
-            <form onSubmit={(e) => handleAuth(e, 'admin', isAdminRegister)} style={styles.form}>
-              {isAdminRegister && (
+              <form onSubmit={(e) => handleAuth(e, 'admin', isAdminRegister)} style={styles.form}>
+                {isAdminRegister && (
+                  <div style={styles.inputGroup}>
+                    <label style={styles.labelDark}>Full Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="Admin Name" 
+                      value={adminName}
+                      onChange={e => setAdminName(e.target.value)}
+                      required 
+                      style={styles.darkInput}
+                    />
+                  </div>
+                )}
                 <div style={styles.inputGroup}>
-                  <label style={styles.labelDark}>Full Name</label>
+                  <label style={styles.labelDark}>Admin Email</label>
                   <input 
-                    type="text" 
-                    placeholder="Admin Name" 
-                    value={adminName}
-                    onChange={e => setAdminName(e.target.value)}
+                    type="email" 
+                    placeholder="admin@university.com" 
+                    value={adminEmail}
+                    onChange={e => setAdminEmail(e.target.value)}
                     required 
                     style={styles.darkInput}
                   />
                 </div>
-              )}
-              <div style={styles.inputGroup}>
-                <label style={styles.labelDark}>Admin Email</label>
-                <input 
-                  type="email" 
-                  placeholder="admin@university.com" 
-                  value={adminEmail}
-                  onChange={e => setAdminEmail(e.target.value)}
-                  required 
-                  style={styles.darkInput}
-                />
-              </div>
-              <div style={styles.inputGroup}>
-                <label style={styles.labelDark}>Password</label>
-                <input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  value={adminPassword}
-                  onChange={e => setAdminPassword(e.target.value)}
-                  required 
-                  style={styles.darkInput}
-                />
-              </div>
+                <div style={styles.inputGroup}>
+                  <label style={styles.labelDark}>Password</label>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={adminPassword}
+                    onChange={e => setAdminPassword(e.target.value)}
+                    required 
+                    style={styles.darkInput}
+                  />
+                </div>
 
-              <button type="submit" disabled={submitting} style={{ ...styles.adminBtn, opacity: submitting ? 0.7 : 1 }}>
-                {submitting ? 'Deploying...' : (isAdminRegister ? 'Deploy New Admin' : 'Secure Admin Login')}
-              </button>
+                <button type="submit" disabled={submitting} style={{ ...styles.adminBtn, opacity: submitting ? 0.7 : 1 }}>
+                  {submitting ? 'Please wait...' : (isAdminRegister ? 'Deploy New Admin' : 'Secure Admin Login')}
+                </button>
 
-              <div style={styles.toggleRow}>
-                <span onClick={() => { setIsAdminRegister(!isAdminRegister); setError(''); setSuccess(''); }} style={styles.linkDark}>
-                  {isAdminRegister ? 'Cancel Registration' : 'New Admin? Register Profile'}
-                </span>
+                <div style={styles.toggleRow}>
+                  <span onClick={() => { setIsAdminRegister(!isAdminRegister); setError(''); setSuccess(''); }} style={styles.linkDark}>
+                    {isAdminRegister ? 'Cancel Registration' : 'New Admin? Register Profile'}
+                  </span>
+                </div>
+              </form>
+
+              <div style={{ ...styles.switchTerminalBox, borderTop: '1px solid #374151' }}>
+                <p style={{ fontSize: '13px', color: '#9ca3af', margin: '0 0 8px 0' }}>Are you a test taker?</p>
+                <button type="button" onClick={() => scrollToPanel(0)} style={styles.slidePrevBtn}>
+                  ◀ Return to Student Portal
+                </button>
               </div>
-            </form>
-
-            <div style={{ ...styles.switchTerminalBox, borderTop: '1px solid #374151' }}>
-              <p style={{ fontSize: '13px', color: '#9ca3af', margin: '0 0 8px 0' }}>Are you a test taker?</p>
-              <button type="button" onClick={() => scrollToPanel(0)} style={styles.slidePrevBtn}>
-                ◀ Return to Student Portal
-              </button>
             </div>
           </div>
         </div>
@@ -288,12 +315,8 @@ const styles = {
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
-  themeToggle: { position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: 'rgba(156, 163, 175, 0.2)', border: 'none', padding: '10px 14px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' },
-  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '20px', width: '100%', maxWidth: '360px', willChange: 'transform, box-shadow' },
+  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '16px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', width: '100%', maxWidth: '360px', willChange: 'transform' },
   header: { textAlign: 'center', marginBottom: '25px' },
-  liveIndicatorContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' },
-  liveDotGreen: { width: '7px', height: '7px', backgroundColor: '#10b981', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #10b981' },
-  liveDotBlue: { width: '7px', height: '7px', backgroundColor: '#60a5fa', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #60a5fa' },
   form: { display: 'flex', flexDirection: 'column', gap: '16px' },
   inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
   labelLight: { fontSize: '12px', fontWeight: 'bold', color: '#4b5563' },
