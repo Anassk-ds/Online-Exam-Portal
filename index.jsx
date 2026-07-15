@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
+import { saveLogin, getLogin } from './localData.js';
 
 const IndexPortal = () => {
   const navigate = useNavigate();
@@ -10,10 +11,9 @@ const IndexPortal = () => {
   // previous session, skip the login form entirely and go straight to the
   // right dashboard instead of asking the user to sign in again.
   useEffect(() => {
-    const storedRole = localStorage.getItem('userRole');
-    const storedToken = localStorage.getItem('token');
-    if (storedRole && storedToken) {
-      navigate(storedRole === 'admin' ? '/admin' : '/dashboard');
+    const loggedInUser = getLogin();
+    if (loggedInUser && loggedInUser.role) {
+      navigate(loggedInUser.role === 'admin' ? '/admin' : '/dashboard');
     }
   }, [navigate]);
 
@@ -47,8 +47,9 @@ const IndexPortal = () => {
     }
   };
 
-  // Auth Handler — actually calls the backend now, instead of just
-  // writing to localStorage and letting anyone straight through.
+  // Auth Handler — calls the backend for verification, then persists the
+  // resulting session via Local Storage (Module 1) so refreshes keep the
+  // user signed in.
   const handleAuth = async (e, type, isRegister) => {
     e.preventDefault();
     setError('');
@@ -97,10 +98,21 @@ const IndexPortal = () => {
         if (!res.ok) {
           setError(data.message || 'Invalid credentials.');
         } else {
+          // Canonical login persistence (Module 1) — used by admin.jsx,
+          // student-dashboard.jsx, and take-exam.jsx.
+          saveLogin({
+            token: data.token,
+            email: data.user.email,
+            name: data.user.name,
+            role: data.user.role
+          });
+
+          // Legacy keys kept in sync for any other component reading them directly.
           localStorage.setItem('token', data.token);
           localStorage.setItem('userEmail', data.user.email);
           localStorage.setItem('userName', data.user.name);
           localStorage.setItem('userRole', data.user.role);
+
           navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
         }
       }
