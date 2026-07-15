@@ -280,4 +280,3 @@ const styles = {
 };
 
 export default StudyNotes;
-
