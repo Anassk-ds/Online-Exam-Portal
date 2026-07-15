@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
-import { saveLogin, getLogin } from './localData.js';
+import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
 const IndexPortal = () => {
   const navigate = useNavigate();
@@ -47,10 +47,11 @@ const IndexPortal = () => {
     }
   };
 
-  // Auth Handler — calls the backend for verification, then persists the
-  // resulting session via Local Storage (Module 1) so refreshes keep the
-  // user signed in.
-  const handleAuth = async (e, type, isRegister) => {
+  // Auth Handler — fully Local Storage based, no backend required.
+  // Register writes a new account into Local Storage; Login checks
+  // credentials against it and persists the session via saveLogin()
+  // (Module 1) so refreshes keep the user signed in.
+  const handleAuth = (e, type, isRegister) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -67,60 +68,37 @@ const IndexPortal = () => {
     }
 
     setSubmitting(true);
-    try {
-      if (isRegister) {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, role: type })
-        });
-        const data = await res.json();
 
-        if (!res.ok) {
-          setError(data.message || 'Registration failed.');
-        } else {
-          setSuccess(
-            type === 'student'
-              ? '✅ Registered! Your account is pending Admin approval before you can sign in.'
-              : '✅ Registered! You can now sign in.'
-          );
-          if (type === 'admin') setIsAdminRegister(false);
-          else setIsStudentRegister(false);
-        }
+    if (isRegister) {
+      const result = registerUser({ name, email, password, role: type });
+      if (!result.success) {
+        setError(result.message);
       } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
-        });
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data.message || 'Invalid credentials.');
-        } else {
-          // Canonical login persistence (Module 1) — used by admin.jsx,
-          // student-dashboard.jsx, and take-exam.jsx.
-          saveLogin({
-            token: data.token,
-            email: data.user.email,
-            name: data.user.name,
-            role: data.user.role
-          });
-
-          // Legacy keys kept in sync for any other component reading them directly.
-          localStorage.setItem('token', data.token);
-          localStorage.setItem('userEmail', data.user.email);
-          localStorage.setItem('userName', data.user.name);
-          localStorage.setItem('userRole', data.user.role);
-
-          navigate(data.user.role === 'admin' ? '/admin' : '/dashboard');
-        }
+        setSuccess('✅ Registered! You can now sign in.');
+        if (type === 'admin') setIsAdminRegister(false);
+        else setIsStudentRegister(false);
       }
-    } catch (err) {
-      setError('Could not reach the server. Please try again.');
-    } finally {
-      setSubmitting(false);
+    } else {
+      const result = loginUser(email, password);
+      if (!result.success) {
+        setError(result.message);
+      } else {
+        const user = result.user;
+
+        // Canonical login persistence (Module 1) — used by admin.jsx,
+        // student-dashboard.jsx, and take-exam.jsx.
+        saveLogin({ email: user.email, name: user.name, role: user.role });
+
+        // Legacy keys kept in sync for any other component reading them directly.
+        localStorage.setItem('userEmail', user.email);
+        localStorage.setItem('userName', user.name);
+        localStorage.setItem('userRole', user.role);
+
+        navigate(user.role === 'admin' ? '/admin' : '/dashboard');
+      }
     }
+
+    setSubmitting(false);
   };
 
   return (
