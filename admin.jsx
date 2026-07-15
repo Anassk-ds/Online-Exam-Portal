@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from './useTheme.js';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [stats, setStats] = useState({ examsConducted: 0, registeredStudents: 0 });
   const [submissions, setSubmissions] = useState([]); 
+  const [pendingStudents, setPendingStudents] = useState([]);
+  const [approvingId, setApprovingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [examTitle, setExamTitle] = useState('');
   const [startDate, setStartDate] = useState(''); 
@@ -20,11 +24,13 @@ const AdminPanel = () => {
   const loadAdminMetricsData = () => {
     Promise.all([
       fetch('/api/admin/dashboard').then(res => res.json()).catch(() => null),
-      fetch('/api/student/results?email=').then(res => res.json()).catch(() => null)
+      fetch('/api/student/results?email=').then(res => res.json()).catch(() => null),
+      fetch('/api/admin/pending-students').then(res => res.json()).catch(() => [])
     ])
-    .then(([statsData, submissionData]) => {
+    .then(([statsData, submissionData, pendingData]) => {
       if (statsData) setStats(statsData.stats || statsData);
       if (submissionData && Array.isArray(submissionData)) setSubmissions(submissionData);
+      if (Array.isArray(pendingData)) setPendingStudents(pendingData);
       setLoading(false);
     })
     .catch(() => setLoading(false));
@@ -33,6 +39,20 @@ const AdminPanel = () => {
   useEffect(() => {
     loadAdminMetricsData();
   }, []);
+
+  const handleApproveStudent = async (studentId) => {
+    setApprovingId(studentId);
+    try {
+      const res = await fetch(`/api/admin/approve-student/${studentId}`, { method: 'PUT' });
+      if (!res.ok) throw new Error();
+      setPendingStudents(prev => prev.filter(s => s._id !== studentId));
+      setStats(prev => ({ ...prev, registeredStudents: (prev.registeredStudents || 0) + 1 }));
+    } catch {
+      setError('Failed to approve student. Please try again.');
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   const handleQuestionFieldUpdate = (index, field, value) => {
     const updated = [...questions];
@@ -103,7 +123,12 @@ const AdminPanel = () => {
           <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>🛡️ Infrastructure Control Center</h1>
           <p style={{ margin: '2px 0 0 0', color: '#94a3b8', fontSize: '12px' }}>Operational Authority Layer Node Active</p>
         </div>
-        <button onClick={handleSignOut} style={styles.logoutActionBtn} className="btn-animated">Disconnect Console Session</button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <button onClick={toggleTheme} className="theme-toggle-btn btn-animated">
+            {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+          </button>
+          <button onClick={handleSignOut} style={styles.logoutActionBtn} className="btn-animated">Disconnect Console Session</button>
+        </div>
       </div>
 
       <div style={styles.workspaceSplitGrid}>
@@ -249,6 +274,33 @@ const AdminPanel = () => {
             </div>
           </div>
 
+          {/* Pending Student Approvals */}
+          <div style={{ ...styles.panelCard, marginBottom: '25px' }}>
+            <h3 style={styles.paneSectionHeading}>🧑‍🎓 Pending Student Approvals</h3>
+            {pendingStudents.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>No students awaiting approval.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {pendingStudents.map((student) => (
+                  <div key={student._id} style={styles.submissionRow} className="card-animated">
+                    <div style={{ overflow: 'hidden', paddingRight: '10px' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>{student.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{student.email}</div>
+                    </div>
+                    <button
+                      onClick={() => handleApproveStudent(student._id)}
+                      disabled={approvingId === student._id}
+                      style={{ ...styles.approveBtn, opacity: approvingId === student._id ? 0.6 : 1 }}
+                      className="btn-animated"
+                    >
+                      {approvingId === student._id ? 'Approving...' : '✅ Approve'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Submissions Feed */}
           <div style={styles.panelCard}>
             <h3 style={styles.paneSectionHeading}>📊 Real-time Stream Analytics Feed Logs</h3>
@@ -296,6 +348,7 @@ const styles = {
   secondaryAddBtn: { backgroundColor: '#fff', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', outline: 'none' },
   submissionRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px' },
   scoreBadge: { backgroundColor: '#dcfce7', color: '#16a34a', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' },
+  approveBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' },
   successMessageRow: { padding: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: '6px', fontSize: '13px', marginBottom: '15px' },
   errorMessageRow: { padding: '12px', backgroundColor: '#fef2f2', border: '1px solid #fca5a5', color: '#b91c1c', borderRadius: '6px', fontSize: '13px', marginBottom: '15px' }
 };
