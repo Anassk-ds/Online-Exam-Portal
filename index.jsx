@@ -3,19 +3,33 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { saveLogin, getLogin, registerUser, loginUser } from './localData.js';
 
+// Custom Hook to drive real-time frame animations without CSS files
+const useLiveFrameAnimation = () => {
+  const [offset, setOffset] = useState(0);
+  
+  useEffect(() => {
+    let animationFrameId;
+    
+    const updateLoop = (time) => {
+      // Creates a smooth, infinite wave oscillation using sine math
+      const waveValue = Math.sin(time / 800) * 12; // Moves up/down by 12px
+      setOffset(waveValue);
+      animationFrameId = requestAnimationFrame(updateLoop);
+    };
+    
+    animationFrameId = requestAnimationFrame(updateLoop);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  return offset;
+};
+
 const IndexPortal = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-
-  // Pulse effect states for a "live terminal" look
-  const [pulse, setPulse] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulse(p => (p === 0 ? 1 : 0));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  
+  // Driving the real-time card float coordinate engine
+  const yOffset = useLiveFrameAnimation();
 
   // Module 1 (Day-45): Auto-navigate if session exists
   useEffect(() => {
@@ -100,30 +114,7 @@ const IndexPortal = () => {
 
   return (
     <div style={styles.viewWindow}>
-      {/* Hidden injection block ensuring structural keyframes render perfectly */}
-      <style>{`
-        @keyframes subtleFloating {
-          0% { transform: translateY(0px) scale(1); }
-          50% { transform: translateY(-15px) scale(1.03); }
-          100% { transform: translateY(0px) scale(1); }
-        }
-        .animated-live-card {
-          animation: subtleFloating 6s infinite ease-in-out;
-        }
-        input:focus {
-          border-color: #2563eb !important;
-          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
-        }
-        .dark-focus input:focus {
-          border-color: #60a5fa !important;
-          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.25) !important;
-        }
-      `}</style>
-
-      <button
-        onClick={toggleTheme}
-        style={styles.themeToggle}
-      >
+      <button onClick={toggleTheme} style={styles.themeToggle}>
         {theme === 'light' ? '🌙' : '☀️'}
       </button>
 
@@ -132,13 +123,11 @@ const IndexPortal = () => {
         {/* ================= PANEL 1: STUDENT PORTAL ================= */}
         <div style={styles.panelPageLight}>
           <div 
-            className="animated-live-card" 
             style={{ 
-              ...styles.card, 
-              boxShadow: pulse === 0 
-                ? '0 20px 25px -5px rgba(16, 185, 129, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' 
-                : '0 25px 30px -5px rgba(16, 185, 129, 0.2), 0 12px 15px -5px rgba(0, 0, 0, 0.06)',
-              transition: 'box-shadow 3s ease-in-out'
+              ...styles.card,
+              // Direct JavaScript injection enforces floating animation instantly
+              transform: `translateY(${yOffset}px)`,
+              boxShadow: `0 ${20 + yOffset}px 30px rgba(16, 185, 129, 0.15)`
             }}
           >
             <div style={styles.header}>
@@ -212,15 +201,13 @@ const IndexPortal = () => {
         {/* ================= PANEL 2: ADMIN SYSTEM CONSOLE ================= */}
         <div style={styles.panelPageDark}>
           <div 
-            className="animated-live-card dark-focus" 
             style={{ 
               ...styles.card, 
               backgroundColor: '#1f2937', 
               border: '1px solid #374151',
-              boxShadow: pulse === 0 
-                ? '0 20px 25px -5px rgba(79, 70, 229, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.2)' 
-                : '0 25px 35px -5px rgba(79, 70, 229, 0.45), 0 12px 20px -5px rgba(0, 0, 0, 0.3)',
-              transition: 'box-shadow 3s ease-in-out'
+              // Dynamic displacement out of step with the student console
+              transform: `translateY(${-yOffset}px)`, 
+              boxShadow: `0 ${25 - yOffset}px 40px rgba(79, 70, 229, 0.3)`
             }}
           >
             <div style={styles.header}>
@@ -301,10 +288,28 @@ const styles = {
   scrollWrapper: { display: 'flex', width: '100%', height: '100%', overflowX: 'hidden', scrollSnapType: 'x mandatory' },
   panelPageLight: { minWidth: '100vw', height: '100vh', backgroundColor: '#f3f4f6', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
   panelPageDark: { minWidth: '100vw', height: '100vh', backgroundColor: '#111827', display: 'flex', justifyContent: 'center', alignItems: 'center', scrollSnapAlign: 'start' },
-  themeToggle: { position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: 'rgba(156, 163, 175, 0.15)', border: 'none', padding: '10px 14px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px', transition: 'transform 0.2s' },
-  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '20px', width: '100%', maxWidth: '360px', transition: 'all 0.4s ease' },
+  themeToggle: { position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: 'rgba(156, 163, 175, 0.2)', border: 'none', padding: '10px 14px', borderRadius: '50%', cursor: 'pointer', fontSize: '16px' },
+  card: { backgroundColor: '#ffffff', padding: '35px', borderRadius: '20px', width: '100%', maxWidth: '360px', willChange: 'transform, box-shadow' },
   header: { textAlign: 'center', marginBottom: '25px' },
   liveIndicatorContainer: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' },
   liveDotGreen: { width: '7px', height: '7px', backgroundColor: '#10b981', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #10b981' },
   liveDotBlue: { width: '7px', height: '7px', backgroundColor: '#60a5fa', borderRadius: '50%', display: 'inline-block', boxShadow: '0 0 8px #60a5fa' },
-  form: { display: 'flex', flexDirection: 'column
+  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  inputGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  labelLight: { fontSize: '12px', fontWeight: 'bold', color: '#4b5563' },
+  labelDark: { fontSize: '12px', fontWeight: 'bold', color: '#9ca3af' },
+  lightInput: { padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#fff', color: '#1f2937' },
+  darkInput: { padding: '12px', border: '1px solid #4b5563', borderRadius: '8px', fontSize: '14px', outline: 'none', backgroundColor: '#374151', color: '#fff' },
+  studentBtn: { backgroundColor: '#10b981', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
+  adminBtn: { backgroundColor: '#4f46e5', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' },
+  toggleRow: { textAlign: 'center', marginTop: '5px' },
+  linkLight: { fontSize: '13px', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' },
+  linkDark: { fontSize: '13px', color: '#60a5fa', cursor: 'pointer', textDecoration: 'underline' },
+  switchTerminalBox: { borderTop: '1px solid #e5e7eb', marginTop: '25px', paddingTop: '20px', textAlign: 'center' },
+  slideNextBtn: { background: 'none', border: '1px solid #cbd5e1', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#4b5563', fontSize: '13px' },
+  slidePrevBtn: { background: 'none', border: '1px solid #4b5563', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#9ca3af', fontSize: '13px' },
+  errorAlert: { backgroundColor: '#fef2f2', border: '1px solid #fee2e2', color: '#dc2626', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' },
+  successAlert: { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '15px', textAlign: 'center' }
+};
+
+export default IndexPortal;
