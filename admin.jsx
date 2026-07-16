@@ -141,10 +141,12 @@ const AdminPanel = () => {
     loadDashboardData();
   };
 
-  const handleSignOut = () => {
-    localStorage.clear();
-    navigate('/');
-  };
+  const handleLogout = () => {
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('userName');
+  localStorage.removeItem('userRole');
+  navigate('/');
+};
 
   if (loading) return <div style={{ padding: '40px', textAlign: 'center', color: '#475569' }}>Loading admin dashboard...</div>;
 
