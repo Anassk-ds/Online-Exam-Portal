@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getExams } from './localData.js';
+import { getExams, hasAttempted } from './localData.js';
 
 const ExamDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const studentEmail = localStorage.getItem('userEmail') || '';
 
   const [exam, setExam] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,7 @@ const ExamDetails = () => {
   const now = new Date();
   const status = start && end ? (now < start ? 'Upcoming' : now > end ? 'Closed' : 'Open') : 'Unscheduled';
   const badgeClass = status === 'Open' ? 'details-badge-open' : status === 'Upcoming' ? 'details-badge-upcoming' : 'details-badge-closed';
+  const attempted = hasAttempted(exam._id, studentEmail);
 
   return (
     <div className="details-page">
@@ -78,7 +80,9 @@ const ExamDetails = () => {
           )}
         </div>
 
-        {status === 'Open' && (
+        {attempted ? (
+          <span className="dash-badge-attempted" style={{ marginTop: '10px', display: 'inline-block' }}>✅ Already Attempted — Exams can only be taken once</span>
+        ) : status === 'Open' && (
           <button onClick={() => navigate(`/take-exam/${exam._id}`)} className="details-start-btn btn-animated">
             Start Exam →
           </button>
