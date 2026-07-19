@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-
+//
 const notesKey = (email) => `studyNotes:${email}`;
 const activityKey = (email) => `studyNotesActivity:${email}`;
 const SEARCH_SESSION_KEY = 'studyNotesSearchTerm';
@@ -207,8 +207,7 @@ const StudyNotes = ({ studentEmail }) => {
             </div>
           ))}
         </div>
-      )}
-
+    
       {activity.length > 0 && (
         <div className="notes-activity-box">
           <h5 className="notes-activity-title">RECENT ACTIVITY</h5>
