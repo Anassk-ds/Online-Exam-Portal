@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
-import { getUsers, saveUsers, getExams, saveExams, getResults } from './localData.js';
+import {
+  getPendingStudents, approveStudent, getAdminStats,
+  getExams, createExam, updateExam, deleteExam, getResults
+} from './apiClient.js';
 import { CODING_QUESTION_BANK } from './questionBank.js';
 import { FiHome, FiBook, FiPlusCircle, FiCheckSquare, FiInbox, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
 
@@ -52,30 +55,39 @@ const AdminPanel = () => {
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
-  const loadDashboardData = () => {
-    const allExams = getExams();
-    const allUsers = getUsers();
-    const allResults = getResults();
-
-    setExams(allExams);
-    setStats({
-      totalExams: allExams.length,
-      approvedStudents: allUsers.filter((u) => u.role === 'student' && u.isApproved).length
-    });
-    setPendingStudents(allUsers.filter((u) => u.role === 'student' && !u.isApproved));
-    setSubmissions(allResults);
-    setLoading(false);
+  const loadDashboardData = async () => {
+    setLoadError('');
+    try {
+      const [allExams, adminStats, pending, allResults] = await Promise.all([
+        getExams(),
+        getAdminStats(),
+        getPendingStudents(),
+        getResults()
+      ]);
+      setExams(allExams);
+      setStats(adminStats);
+      setPendingStudents(pending);
+      setSubmissions(allResults);
+    } catch (err) {
+      setLoadError(err.message || 'Could not reach the server. Is the backend running?');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
-  const handleApproveStudent = (studentId) => {
-    const updated = getUsers().map((u) => (u.id === studentId ? { ...u, isApproved: true } : u));
-    saveUsers(updated);
-    loadDashboardData();
+  const handleApproveStudent = async (studentId) => {
+    try {
+      await approveStudent(studentId);
+      loadDashboardData();
+    } catch (err) {
+      setLoadError(err.message);
+    }
   };
 
   const handleQuestionChange = (index, field, value) => {
@@ -144,7 +156,7 @@ const AdminPanel = () => {
     setActiveTab('createExam');
   };
 
-  const handleSubmitExam = (e) => {
+  const handleSubmitExam = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
@@ -172,31 +184,27 @@ const AdminPanel = () => {
       }
     }
 
-    const allExams = getExams();
+    const payload = {
+      title: examTitle,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
+      questions
+    };
 
-    if (editingExamId) {
-      const updated = allExams.map((exam) =>
-        exam._id === editingExamId
-          ? { ...exam, title: examTitle, startDate: new Date(startDate).toISOString(), endDate: new Date(endDate).toISOString(), questions }
-          : exam
-      );
-      saveExams(updated);
-      setMessage('Exam updated successfully.');
-    } else {
-      const newExam = {
-        _id: crypto.randomUUID(),
-        title: examTitle,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
-        questions
-      };
-      saveExams([...allExams, newExam]);
-      setMessage('Exam created successfully.');
+    try {
+      if (editingExamId) {
+        await updateExam(editingExamId, payload);
+        setMessage('Exam updated successfully.');
+      } else {
+        await createExam(payload);
+        setMessage('Exam created successfully.');
+      }
+      resetForm();
+      await loadDashboardData();
+      setActiveTab('manageExams');
+    } catch (err) {
+      setError(err.message);
     }
-
-    resetForm();
-    loadDashboardData();
-    setActiveTab('manageExams');
   };
 
   const handleEditExam = (exam) => {
@@ -214,11 +222,16 @@ const AdminPanel = () => {
     setActiveTab('createExam');
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!examToDelete) return;
-    saveExams(getExams().filter((exam) => exam._id !== examToDelete));
-    setExamToDelete(null);
-    loadDashboardData();
+    try {
+      await deleteExam(examToDelete);
+      setExamToDelete(null);
+      await loadDashboardData();
+    } catch (err) {
+      setExamToDelete(null);
+      setLoadError(err.message);
+    }
   };
 
   const handleLogout = () => {
@@ -234,6 +247,11 @@ const AdminPanel = () => {
 
   return (
     <div className="dash-container page-fade-in">
+      {loadError && (
+        <div className="alert-error" style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 999 }}>
+          ⚠️ {loadError} — check that your backend server is running and MONGODB_URI is set.
+        </div>
+      )}
       <div className="dash-sidebar sidebar-fade-in">
         <div className="dash-sidebar-header">
           <h3><span className="dash-avatar">A</span> Admin Console</h3>
