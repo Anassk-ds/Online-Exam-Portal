@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getExams, getResults, saveResults, hasAttempted } from './localData.js';
+import { getExam, checkAttempted, submitResult } from './apiClient.js';
 import { runCode, runTestCases, getStarterCode, LANGUAGE_LABELS } from './codeRunner.js';
 
 const TakeExam = () => {
@@ -32,29 +32,37 @@ const TakeExam = () => {
       return;
     }
 
-    if (hasAttempted(examId, studentEmail)) {
-      setAlreadyDone(true);
-      setLoading(false);
-      return;
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const attempted = await checkAttempted(examId, studentEmail);
+        if (attempted) {
+          if (!cancelled) { setAlreadyDone(true); setLoading(false); }
+          return;
+        }
 
-    const found = getExams().find((e) => e._id === examId);
-    if (!found) {
-      setError('Exam not found.');
-      setLoading(false);
-      return;
-    }
+        const found = await getExam(examId);
+        if (cancelled) return;
 
-    setExam(found);
-    setQuestions(found.questions || []);
+        setExam(found);
+        setQuestions(found.questions || []);
 
-    if (found.endDate) {
-      const diff = Math.floor((new Date(found.endDate).getTime() - Date.now()) / 1000);
-      setTimeLeft(diff > 0 ? diff : 0);
-    } else {
-      setTimeLeft(3600);
-    }
-    setLoading(false);
+        if (found.endDate) {
+          const diff = Math.floor((new Date(found.endDate).getTime() - Date.now()) / 1000);
+          setTimeLeft(diff > 0 ? diff : 0);
+        } else {
+          setTimeLeft(3600);
+        }
+        setLoading(false);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Exam not found.');
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => { cancelled = true; };
   }, [examId]);
 
   useEffect(() => {
@@ -153,34 +161,42 @@ const TakeExam = () => {
     setGradingMessage('');
 
     const finalResult = {
-      id: crypto.randomUUID(),
       studentEmail,
       examId,
       examTitle: exam?.title || 'Exam Session',
       score: Math.round(score * 100) / 100,
       totalQuestions: questions.length,
-      studentAnswers: finalAnswers,
-      createdAt: new Date().toISOString()
+      studentAnswers: finalAnswers
     };
 
-    saveResults([...getResults(), finalResult]);
-    return finalResult;
+    const saved = await submitResult(finalResult);
+    return saved;
   };
 
   const handleAutoSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
-    const savedResult = await gradeAndSave();
-    setSubmitting(false);
-    setResult(savedResult);
+    try {
+      const savedResult = await gradeAndSave();
+      setResult(savedResult);
+    } catch (err) {
+      setError(err.message || 'Could not submit your exam — check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const manualSubmit = async () => {
     if (!window.confirm('Are you sure you want to submit your exam?')) return;
     setSubmitting(true);
-    const savedResult = await gradeAndSave();
-    setSubmitting(false);
-    setResult(savedResult);
+    try {
+      const savedResult = await gradeAndSave();
+      setResult(savedResult);
+    } catch (err) {
+      setError(err.message || 'Could not submit your exam — check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <div className="exam-fallback-screen">🔄 Loading Exam...</div>;
