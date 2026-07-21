@@ -1,14 +1,3 @@
-// A small, free, offline library of ready-made coding problems that admins
-// can import with one click while building an exam. Each entry ships with a
-// problem statement, one sample input/output pair (shown to students), and a
-// separate set of test cases (used for grading, not shown to students).
-//
-// Note on "free APIs": there is no public API that reliably serves coding
-// problems bundled with runnable, license-clear test cases, so this bank is
-// bundled locally (zero cost, always available, no rate limits). Actual code
-// *execution* — the compiler behind the Run button — does use a real free
-// public API: Judge0 CE (see codeRunner.js).
-
 export const CODING_QUESTION_BANK = [
   {
     id: 'sum-two-numbers',
