@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
-import { getExams, getResults, hasAttempted } from './localData.js';
+import { getExams, getResults } from './apiClient.js';
 import StudyNotes from './StudyNotes.jsx';
 import { FiHome, FiEdit3, FiBarChart2, FiBookOpen, FiSun, FiMoon, FiLogOut, FiClock, FiFlag, FiCheckCircle, FiLock, FiXCircle, FiEye } from 'react-icons/fi';
 
@@ -13,8 +13,13 @@ const StudentDashboard = () => {
   const [results, setResults] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedResultId, setExpandedResultId] = useState(null);
+  const [loadError, setLoadError] = useState('');
 
   const studentEmail = localStorage.getItem('userEmail') || '';
+
+  // Computed from the results we already fetched for this student — avoids
+  // a separate network round-trip per exam card.
+  const hasAttempted = (examId) => results.some((r) => r.examId === examId);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -22,8 +27,19 @@ const StudentDashboard = () => {
   }, []);
 
   useEffect(() => {
-    setExamsList(getExams());
-    setResults(getResults().filter((r) => r.studentEmail === studentEmail));
+    let cancelled = false;
+    (async () => {
+      try {
+        const [exams, myResults] = await Promise.all([getExams(), getResults(studentEmail)]);
+        if (!cancelled) {
+          setExamsList(exams);
+          setResults(myResults);
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError(err.message || 'Could not reach the server.');
+      }
+    })();
+    return () => { cancelled = true; };
   }, [studentEmail]);
 
   const toggleResultExpansion = (id) => {
@@ -38,7 +54,7 @@ const StudentDashboard = () => {
 };
 
   const handleLaunchExam = (examId) => {
-    if (hasAttempted(examId, studentEmail)) {
+    if (hasAttempted(examId)) {
       alert('You have already submitted this exam. Each exam can only be attempted once.');
       return;
     }
@@ -51,6 +67,11 @@ const StudentDashboard = () => {
 
   return (
     <div className="dash-container page-fade-in">
+      {loadError && (
+        <div className="alert-error" style={{ position: 'fixed', top: '16px', left: '50%', transform: 'translateX(-50%)', zIndex: 999 }}>
+          ⚠️ {loadError} — check that your backend server is running.
+        </div>
+      )}
       <div className="dash-sidebar sidebar-fade-in">
         <div className="dash-sidebar-header">
           <h3><span className="dash-avatar">{(studentEmail || 'S').charAt(0).toUpperCase()}</span> Student Hub</h3>
@@ -103,7 +124,7 @@ const StudentDashboard = () => {
                   const isUpcoming = currentTime < start;
                   const isExpired = currentTime > end;
                   const isOpen = !isUpcoming && !isExpired;
-                  const attempted = hasAttempted(exam._id, studentEmail);
+                  const attempted = hasAttempted(exam._id);
 
                   return (
                     <div key={exam._id} className="dash-item-card card-animated">
@@ -206,5 +227,5 @@ const StudentDashboard = () => {
     </div>
   );
 };
-//
+
 export default StudentDashboard;
