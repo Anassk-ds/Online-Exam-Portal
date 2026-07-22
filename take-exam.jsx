@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getExam, checkAttempted, submitResult } from './apiClient.js';
-import { runCode, runTestCases, getStarterCode, LANGUAGE_LABELS } from './codeRunner.js';
+import { runTestCases, getStarterCode, LANGUAGE_LABELS } from './codeRunner.js';
 
 const TakeExam = () => {
   const { id: examId } = useParams();
@@ -18,10 +18,7 @@ const TakeExam = () => {
   const [submitting, setSubmitting] = useState(false);
   const [gradingMessage, setGradingMessage] = useState('');
   const [localCode, setLocalCode] = useState('');
-  const [runStdin, setRunStdin] = useState('');
-  const [runOutput, setRunOutput] = useState(null);
-  const [running, setRunning] = useState(false);
-  const [testRunResults, setTestRunResults] = useState(null); // { results, apiFailed } from clicking "Run Test Cases"
+  const [testRunResults, setTestRunResults] = useState(null); // { results, apiFailed } from clicking Run
   const [runningTests, setRunningTests] = useState(false);
   const [result, setResult] = useState(null); // holds the final graded result once submitted
 
@@ -89,8 +86,6 @@ const TakeExam = () => {
       const existing = answers[currentIdx];
       const lang = existing?.lang || questions[currentIdx]?.allowedLanguages?.[0] || 'javascript';
       setLocalCode(existing?.code !== undefined ? existing.code : getStarterCode(lang));
-      setRunStdin(questions[currentIdx]?.sampleInput || '');
-      setRunOutput(null);
       setTestRunResults(null);
     }
   }, [currentIdx, questions]);
@@ -121,15 +116,7 @@ const TakeExam = () => {
 
   const currentLang = () => answers[currentIdx]?.lang || questions[currentIdx]?.allowedLanguages?.[0] || 'javascript';
 
-  const handleRunCode = async () => {
-    setRunning(true);
-    setRunOutput(null);
-    const res = await runCode(currentLang(), localCode, runStdin);
-    setRunOutput(res);
-    setRunning(false);
-  };
-
-  const handleRunTestCases = async () => {
+  const handleRun = async () => {
     const testCases = questions[currentIdx]?.testCases || [];
     if (testCases.length === 0) return;
     setRunningTests(true);
@@ -137,6 +124,54 @@ const TakeExam = () => {
     const outcome = await runTestCases(currentLang(), localCode, testCases);
     setTestRunResults(outcome);
     setRunningTests(false);
+  };
+
+  // Auto-close (), [], {} as the student types, skip over an
+  // auto-inserted closing character instead of duplicating it, and delete
+  // both characters of an empty pair on backspace — standard code-editor
+  // bracket behavior.
+  const BRACKET_PAIRS = { '(': ')', '[': ']', '{': '}' };
+  const CLOSE_CHARS = new Set(Object.values(BRACKET_PAIRS));
+
+  const handleEditorKeyDown = (e) => {
+    const textarea = e.target;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = localCode;
+
+    if (BRACKET_PAIRS[e.key]) {
+      e.preventDefault();
+      const closeChar = BRACKET_PAIRS[e.key];
+      const selected = value.slice(start, end);
+      const newValue = value.slice(0, start) + e.key + selected + closeChar + value.slice(end);
+      handleLocalCodeChange(newValue);
+      requestAnimationFrame(() => {
+        const pos = start + 1 + selected.length;
+        textarea.selectionStart = textarea.selectionEnd = pos;
+      });
+      return;
+    }
+
+    if (CLOSE_CHARS.has(e.key) && start === end && value[start] === e.key) {
+      e.preventDefault();
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 1;
+      });
+      return;
+    }
+
+    if (e.key === 'Backspace' && start === end && start > 0) {
+      const charBefore = value[start - 1];
+      const charAfter = value[start];
+      if (BRACKET_PAIRS[charBefore] === charAfter) {
+        e.preventDefault();
+        const newValue = value.slice(0, start - 1) + value.slice(start + 1);
+        handleLocalCodeChange(newValue);
+        requestAnimationFrame(() => {
+          textarea.selectionStart = textarea.selectionEnd = start - 1;
+        });
+      }
+    }
   };
 
   const gradeAndSave = async () => {
@@ -455,6 +490,7 @@ const TakeExam = () => {
               <textarea
                 value={localCode}
                 onChange={(e) => handleLocalCodeChange(e.target.value)}
+                onKeyDown={handleEditorKeyDown}
                 placeholder="// Write your code here..."
                 className="exam-code-editor"
                 spellCheck="false"
@@ -463,60 +499,35 @@ const TakeExam = () => {
               <div className="run-panel">
                 <div className="run-panel-header">
                   <span className="exam-timer-label">▶️ TEST YOUR CODE</span>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={handleRunCode} disabled={running} className="run-btn btn-animated">
-                      {running ? 'Running…' : '▶ Run Code'}
+                  {(currentQuestion.testCases || []).length > 0 && (
+                    <button onClick={handleRun} disabled={runningTests} className="run-btn btn-animated">
+                      {runningTests ? 'Running…' : '▶ Run'}
                     </button>
-                    {(currentQuestion.testCases || []).length > 0 && (
-                      <button onClick={handleRunTestCases} disabled={runningTests} className="run-btn btn-animated">
-                        {runningTests ? 'Testing…' : `🧪 Run Test Cases (${currentQuestion.testCases.length})`}
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
-                <textarea
-                  value={runStdin}
-                  onChange={(e) => setRunStdin(e.target.value)}
-                  placeholder="Custom input (stdin)..."
-                  className="run-stdin-box"
-                  spellCheck="false"
-                  rows={2}
-                />
-                {runOutput && (
-                  <div className="run-output-box">
-                    {runOutput.ok ? (
-                      <>
-                        <div className={`run-status ${runOutput.success ? 'run-status-ok' : 'run-status-error'}`}>
-                          {runOutput.status}
-                        </div>
-                        {runOutput.stdout && <pre className="run-output-stdout">{runOutput.stdout}</pre>}
-                        {runOutput.stderr && <pre className="run-output-stderr">{runOutput.stderr}</pre>}
-                      </>
-                    ) : (
-                      <div className="run-status run-status-error">{runOutput.error}</div>
-                    )}
-                  </div>
-                )}
 
                 {testRunResults && (
                   <div className="run-output-box">
-                    {(() => {
-                      const passedCount = testRunResults.results.filter((r) => r.passed).length;
-                      const total = testRunResults.results.length;
-                      return (
-                        <div className={`run-status ${passedCount === total ? 'run-status-ok' : 'run-status-error'}`}>
-                          {passedCount} / {total} test cases passed
-                        </div>
-                      );
-                    })()}
                     {testRunResults.apiFailed && (
                       <div className="run-status run-status-error">Some test cases couldn't be checked — connection issue with the code runner.</div>
                     )}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: testRunResults.apiFailed ? '8px' : 0 }}>
                       {testRunResults.results.map((r, i) => (
-                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', padding: '6px 8px', borderRadius: '6px', background: r.skipped ? 'rgba(148,163,184,0.15)' : r.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}>
-                          <span>Test Case {i + 1}</span>
-                          <span>{r.skipped ? '⚠️ Skipped' : r.passed ? '✔ Passed' : '✘ Failed'}</span>
+                        <div key={i} style={{ padding: '8px 10px', borderRadius: '6px', background: r.skipped ? 'rgba(148,163,184,0.15)' : r.passed ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600 }}>
+                            <span>Test Case {i + 1}</span>
+                            <span>{r.skipped ? '⚠️' : r.passed ? '✅' : '❌'}</span>
+                          </div>
+                          {!r.passed && !r.skipped && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#fca5a5', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                              {r.stderr
+                                ? <span>Error: {r.stderr}</span>
+                                : <span>Expected "{r.expected}" but got "{r.actual}"</span>}
+                            </div>
+                          )}
+                          {r.skipped && r.error && (
+                            <div style={{ marginTop: '6px', fontSize: '12px', color: '#cbd5e1' }}>{r.error}</div>
+                          )}
                         </div>
                       ))}
                     </div>
