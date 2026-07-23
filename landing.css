@@ -1,0 +1,640 @@
+/* Landing page — scoped with the lp- prefix so it never collides with the
+   existing portal/dashboard styles in style.css. Reuses the app's existing
+   design tokens (--primary, --accent, --surface, --text, --border, etc.)
+   defined in style.css so light/dark theme switching keeps working here. */
+
+.lp-page {
+  min-height: 100%;
+  background: var(--background);
+  color: var(--text);
+}
+
+.lp-noise {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(700px circle at 12% 0%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 60%),
+    radial-gradient(600px circle at 100% 20%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%);
+}
+
+/* ---------- Nav ---------- */
+.lp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 6vw;
+  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, var(--background) 78%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.lp-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.lp-brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #fff;
+  font-size: 16px;
+  flex: none;
+}
+
+.lp-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-nav-link {
+  display: none;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 8px 4px;
+}
+
+.lp-nav-link:hover {
+  color: var(--text);
+}
+
+@media (min-width: 760px) {
+  .lp-nav-link {
+    display: inline-block;
+  }
+}
+
+.lp-btn-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.lp-btn-login:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+/* ---------- Hero ---------- */
+.lp-hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 48px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 64px 6vw 40px;
+  align-items: center;
+}
+
+@media (min-width: 980px) {
+  .lp-hero {
+    grid-template-columns: 1.05fr 0.95fr;
+    padding: 88px 6vw 56px;
+  }
+}
+
+.lp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, transparent);
+  padding: 6px 12px;
+  border-radius: 999px;
+  margin-bottom: 20px;
+}
+
+.lp-hero h1 {
+  font-size: clamp(34px, 5.4vw, 58px);
+  line-height: 1.06;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin: 0 0 20px;
+}
+
+.lp-hero h1 em {
+  font-style: normal;
+  background: linear-gradient(100deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lp-hero-sub {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  max-width: 52ch;
+  margin: 0 0 32px;
+}
+
+.lp-hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 36px;
+}
+
+.lp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.lp-btn-primary:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.lp-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 14px 22px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.lp-btn-secondary:hover {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.lp-hero-stats {
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.lp-stat b {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.lp-stat span {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ---------- Signature element: the exam ticket ---------- */
+.lp-ticket-wrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.lp-ticket {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px -20px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.lp-ticket-top {
+  padding: 22px 24px 18px;
+}
+
+.lp-ticket-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.lp-ticket-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.lp-ticket-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--success);
+}
+
+.lp-ticket-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: lp-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes lp-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+
+.lp-ticket-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.lp-ticket-subject {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 4px 0 2px;
+  min-height: 32px;
+  transition: opacity 0.25s ease;
+}
+
+.lp-ticket-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  min-height: 34px;
+}
+
+.lp-ticket-divider {
+  position: relative;
+  height: 1px;
+  background: var(--border);
+  margin: 0 0;
+}
+
+.lp-ticket-divider::before,
+.lp-ticket-divider::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--background);
+  border: 1px solid var(--border);
+}
+
+.lp-ticket-divider::before { left: -9px; }
+.lp-ticket-divider::after { right: -9px; }
+
+.lp-ticket-bottom {
+  padding: 18px 24px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lp-ticket-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.lp-ticket-timer-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.lp-ticket-bar-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.lp-ticket-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  transition: width 1s linear;
+}
+
+/* ---------- Section shells ---------- */
+.lp-section {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 64px 6vw;
+}
+
+.lp-section-head {
+  max-width: 640px;
+  margin: 0 0 40px;
+}
+
+.lp-section-eyebrow {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.lp-section-head h2 {
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.lp-section-head p {
+  color: var(--text-muted);
+  font-size: 15.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------- Topics grid ---------- */
+.lp-topics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .lp-topics-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 980px) {
+  .lp-topics-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.lp-topic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lp-topic-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+  box-shadow: 0 16px 32px -20px rgba(15, 23, 42, 0.3);
+}
+
+.lp-topic-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.lp-topic-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+.lp-topic-paper {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.lp-topic-card h3 {
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.lp-topic-card p {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ---------- How it works ---------- */
+.lp-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 760px) {
+  .lp-steps { grid-template-columns: repeat(4, 1fr); }
+}
+
+.lp-step {
+  position: relative;
+  padding-top: 8px;
+}
+
+.lp-step-num {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+.lp-step h4 {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.lp-step p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ---------- Features ---------- */
+.lp-features {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 760px) {
+  .lp-features { grid-template-columns: 1fr 1fr; }
+}
+
+.lp-feature {
+  display: flex;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.lp-feature-icon {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 19px;
+}
+
+.lp-feature h4 {
+  font-size: 15.5px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.lp-feature p {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ---------- CTA band ---------- */
+.lp-cta-band {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 24px auto 64px;
+  padding: 48px 6vw;
+  border-radius: 22px;
+  background: linear-gradient(120deg, var(--primary), var(--accent));
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.lp-cta-band h3 {
+  font-size: clamp(20px, 2.8vw, 27px);
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.lp-cta-band p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 14.5px;
+}
+
+.lp-btn-on-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: var(--primary);
+  border: none;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.12s ease;
+  flex: none;
+}
+
+.lp-btn-on-color:hover {
+  transform: translateY(-1px);
+}
+
+/* ---------- Footer ---------- */
+.lp-footer {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 28px 6vw 36px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.lp-footer a {
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-left: 18px;
+}
+
+.lp-footer a:hover {
+  color: var(--text);
+}
