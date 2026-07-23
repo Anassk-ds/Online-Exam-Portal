@@ -51,13 +51,6 @@ const TakeExam = () => {
 
         setExam(found);
         setQuestions(found.questions || []);
-
-        if (found.endDate) {
-          const diff = Math.floor((new Date(found.endDate).getTime() - Date.now()) / 1000);
-          setTimeLeft(diff > 0 ? diff : 0);
-        } else {
-          setTimeLeft(3600);
-        }
         setLoading(false);
       } catch (err) {
         if (!cancelled) {
@@ -259,7 +252,10 @@ const TakeExam = () => {
 
   // Requesting fullscreen only works as a direct response to a user click
   // (browsers reject it if called automatically on page load), so this runs
-  // from the "Start Exam" button rather than in a useEffect on mount.
+  // from the "Start Exam" button rather than in a useEffect on mount. The
+  // countdown timer is also started here, from the exam's fixed
+  // durationMinutes — every student gets the same number of minutes
+  // regardless of when in the start/end window they actually begin.
   const handleStartExam = async () => {
     try {
       if (document.documentElement.requestFullscreen) {
@@ -270,6 +266,8 @@ const TakeExam = () => {
       // security settings block it) — proceed anyway rather than blocking
       // the student from taking the exam at all.
     }
+    const minutes = exam?.durationMinutes ?? 60; // older exams saved before this field existed default to 60
+    setTimeLeft(minutes * 60);
     setExamStarted(true);
   };
 
@@ -357,6 +355,9 @@ const TakeExam = () => {
       <div className="exam-fallback-screen" style={{ flexDirection: 'column', gap: '16px', textAlign: 'center', maxWidth: '480px', margin: '0 auto' }}>
         <span style={{ fontSize: '40px' }}>🖥️</span>
         <h2 style={{ margin: 0 }}>{exam?.title}</h2>
+        <div className="dash-badge-locked" style={{ display: 'inline-block' }}>
+          ⏱️ You will get {exam?.durationMinutes ?? 60} minutes once you start
+        </div>
         <p style={{ color: '#94a3b8', lineHeight: 1.6 }}>
           This exam runs in fullscreen. Once you start, switching tabs, minimizing the window,
           or exiting fullscreen will count as a violation — after {MAX_VIOLATIONS} violations
