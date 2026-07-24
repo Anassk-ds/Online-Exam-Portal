@@ -79,7 +79,7 @@ const Login = () => {
   };
 
   return (
-    <div className="portal-window page-fade-in">
+    <div className={`portal-window page-fade-in ${activePanel === 1 ? 'portal-window-admin' : ''}`}>
       <Link
         to="/"
         className="theme-toggle-btn btn-animated"
