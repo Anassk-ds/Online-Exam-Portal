@@ -6,7 +6,8 @@ import {
   getExams, createExam, updateExam, deleteExam, getResults
 } from './apiClient.js';
 import { CODING_QUESTION_BANK } from './questionBank.js';
-import { FiHome, FiBook, FiPlusCircle, FiCheckSquare, FiInbox, FiSun, FiMoon, FiLogOut } from 'react-icons/fi';
+import ChangePasswordModal from './ChangePasswordModal.jsx';
+import { FiHome, FiBook, FiPlusCircle, FiCheckSquare, FiInbox, FiSun, FiMoon, FiLogOut, FiKey } from 'react-icons/fi';
 
 const emptyTestCase = () => ({ input: '', output: '' });
 
@@ -40,6 +41,7 @@ const AdminPanel = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
   const adminName = localStorage.getItem('userName') || 'Admin';
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   const [stats, setStats] = useState({ totalExams: 0, approvedStudents: 0, totalStudents: 0, totalResults: 0, upcomingExams: 0 });
   const [submissions, setSubmissions] = useState([]);
@@ -288,8 +290,11 @@ const AdminPanel = () => {
             {theme === 'light' ? <><FiMoon /> Dark Mode</> : <><FiSun /> Light Mode</>}
           </button>
         </div>
+        <button onClick={() => setShowChangePassword(true)} className="dash-nav-btn sidebar-item-animated"><FiKey /> Change Password</button>
         <button onClick={handleLogout} className="dash-logout-btn btn-animated"><FiLogOut /> Log Out</button>
       </div>
+
+      {showChangePassword && <ChangePasswordModal onClose={() => setShowChangePassword(false)} />}
 
       <div className="dash-main">
         {activeTab === 'overview' && (
