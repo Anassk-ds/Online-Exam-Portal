@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from './useTheme.js';
 import { getExams, getResults } from './apiClient.js';
 import StudyNotes from './StudyNotes.jsx';
@@ -8,8 +8,9 @@ import { FiHome, FiEdit3, FiBarChart2, FiBookOpen, FiSun, FiMoon, FiLogOut, FiCl
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, toggleTheme } = useTheme();
-  const [activeTab, setActiveTab] = useState('Home');
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'Home');
   const [examsList, setExamsList] = useState([]);
   const [results, setResults] = useState([]);
   const [currentTime, setCurrentTime] = useState(new Date());
