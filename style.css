@@ -2477,6 +2477,17 @@ h1, h2, h3, h4, h5 {
 [data-theme="dark"] .portal-window {
     background: radial-gradient(circle at 15% 20%, #1e293b 0%, #0f172a 55%, #0b1120 100%) !important;
 }
+/* The Admin Console is intentionally always dark-styled (a deliberate
+   "secure infrastructure" look), independent of the site-wide light/dark
+   preference — that preference still applies everywhere else (dashboards,
+   student portal, etc). Without this, toggling theme while on the admin
+   panel visibly flashed the backdrop between light/dark even though the
+   admin card itself never changed, which read as a bug. This rule wins
+   over both variants above via matching specificity + later source order. */
+.portal-window.portal-window-admin,
+[data-theme="dark"] .portal-window.portal-window-admin {
+    background: radial-gradient(circle at 15% 20%, #1e293b 0%, #0f172a 55%, #0b1120 100%) !important;
+}
 .portal-panel-dark {
     background: radial-gradient(circle at 85% 20%, #1e1b3a 0%, #0b0e17 55%) !important;
 }
